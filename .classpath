@@ -10,5 +10,6 @@
 	<classpathentry kind="lib" path="/home/jgracia/admin/eclipse-libs/gluegen-rt.jar"/>
 	<classpathentry kind="lib" path="/home/jgracia/admin/eclipse-libs/jna.jar"/>
 	<classpathentry kind="lib" path="/home/jgracia/admin/eclipse-libs/jogl-all.jar"/>
+	<classpathentry kind="lib" path="/home/jgracia/admin/eclipse-libs/opencv_processing/library/opencv-245.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -608,7 +608,7 @@ public class KinectControlPanel extends PApplet {
 			p.limits[1].z = controller.getArrayValue(1);
 		} else if (controllerName.equals("fileName")) {
 			p.fileName = ((Textfield) controller).getText();
-			System.out.println("Data will be saved in " + p.fileDir + p.fileName + "-*.*");
+			System.out.println("Data will be saved in " + p.outputDir + p.fileName + "-*.*");
 		}
 	}
 

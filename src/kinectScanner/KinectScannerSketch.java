@@ -34,7 +34,8 @@ public class KinectScannerSketch extends PApplet {
 	public PVector[] limits = null;
 	// public PVector[] limits = new PVector[] { new PVector(-1100, -1500, 0), new PVector(1100, 1000, 3300) };
 	public String fileName = "test";
-	public String fileDir = "src/kinectScanner/out/";
+	public String outputDir = "out/";
+	public String imgDir = "data/images/";
 	public boolean drawBox = false;
 	public int framesPerScan = 10;
 	public boolean takeScan = false;
@@ -128,12 +129,12 @@ public class KinectScannerSketch extends PApplet {
 		sculpture = new Sculpture(60f, 30, 10);
 
 		// Initialize the bier object for the Oktoberfest game
-		PImage bierImg = loadImage("src/kinectScanner/mass.png");
+		PImage bierImg = loadImage(imgDir + "mass.png");
 		bier = new MovingImg(bierImg);
 		bier.angle = PI;
 
 		// Initialize the brezel objects for the Oktoberfest game
-		PImage brezelImg = loadImage("src/kinectScanner/brezel.png");
+		PImage brezelImg = loadImage(imgDir + "brezel.png");
 		int nBrezeln = 3;
 		brezeln = new MovingImg[nBrezeln];
 
@@ -145,7 +146,7 @@ public class KinectScannerSketch extends PApplet {
 		}
 
 		// Load the image that will be used as sketch background
-		// backgroundImg = loadImage("src/kinectScanner/background.jpg");
+		// backgroundImg = loadImage(imgDir + "background.jpg");
 		backgroundImg = null;
 
 		// Initialize the sketch floor
@@ -163,7 +164,7 @@ public class KinectScannerSketch extends PApplet {
 	 */
 	public void draw() {
 		// Write the frame rate on the screen title
-		surface.setTitle("Kinect Munich Creative Coding Workshop 2016 // " + (int) frameRate + " fps");
+		surface.setTitle("Kinect scanner // " + (int) frameRate + " fps");
 
 		// Draw the background
 		if (backgroundImg != null) {
@@ -292,7 +293,7 @@ public class KinectScannerSketch extends PApplet {
 		// Save the last scan taken
 		if (saveScan) {
 			if (scan != null) {
-				String scanFileName = fileDir + fileName + "-" + scanCounter + ".points";
+				String scanFileName = outputDir + fileName + "-" + scanCounter + ".points";
 				scan.savePoints(this, scanFileName);
 				println("Save scan: 3D points saved in " + scanFileName);
 			}
@@ -320,7 +321,7 @@ public class KinectScannerSketch extends PApplet {
 		if (saveSlitScan) {
 			if (slitScan != null) {
 				slitScanCounter++;
-				String slitScanFileName = fileDir + fileName + "-slit" + slitScanCounter + ".points";
+				String slitScanFileName = outputDir + fileName + "-slit" + slitScanCounter + ".points";
 				slitScan.savePoints(this, slitScanFileName);
 				println("Save slit scan: 3D points saved in " + slitScanFileName);
 			}
@@ -354,7 +355,7 @@ public class KinectScannerSketch extends PApplet {
 		// Save the last sculpture
 		if (saveSculpture) {
 			sculptureCounter++;
-			String sculptureFileName = fileDir + fileName + "-" + sculptureCounter + ".sculpt";
+			String sculptureFileName = outputDir + fileName + "-" + sculptureCounter + ".sculpt";
 			sculpture.savePoints(this, sculptureFileName);
 			saveSculpture = false;
 			println("Save sculpture: control points saved in " + sculptureFileName);
