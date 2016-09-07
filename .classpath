@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/home/jgracia/admin/eclipse-libs/controlP5.jar"/>
+	<classpathentry kind="lib" path="/home/jgracia/admin/eclipse-libs/core.jar"/>
+	<classpathentry kind="lib" path="/home/jgracia/admin/eclipse-libs/toxiclibscore.jar"/>
+	<classpathentry kind="lib" path="/home/jgracia/admin/eclipse-libs/opencv_processing/library/opencv_processing.jar"/>
+	<classpathentry kind="lib" path="/home/jgracia/admin/eclipse-libs/SimpleOpenNI/library/SimpleOpenNI.jar"/>
+	<classpathentry kind="lib" path="/home/jgracia/admin/eclipse-libs/gluegen-rt.jar"/>
+	<classpathentry kind="lib" path="/home/jgracia/admin/eclipse-libs/jna.jar"/>
+	<classpathentry kind="lib" path="/home/jgracia/admin/eclipse-libs/jogl-all.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
