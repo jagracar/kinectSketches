@@ -1,5 +1,6 @@
-package kinectScanner;
+package jagracar.kinect.containers;
 
+import jagracar.kinect.util.ScanBox;
 import processing.core.PApplet;
 import processing.core.PVector;
 

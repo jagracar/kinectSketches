@@ -4,7 +4,7 @@
  * 
  * @author Javier Graciá Carpio (jagracar)
  */
-class KinectControlPanel extends PApplet {
+class ControlPanel extends PApplet {
 
   /**
    * The main ControlP5 object
@@ -112,13 +112,13 @@ class KinectControlPanel extends PApplet {
   private String[] drawingColors = new String[] { "Real colors", "Red", "Green", "Blue" };
 
   /**
-   * Constructs the KinectControlPanel object
+   * Constructs the ControlPanel object
    * 
    * @param p the main Kinect scanner sketch applet
    * @param panelPosX the control panel x position
    * @param panelPosY the control panel y position
    */
-  public KinectControlPanel(KinectScanner p, int panelPosX, int panelPosY) {
+  public ControlPanel(KinectScanner p, int panelPosX, int panelPosY) {
     this.p = p;
     this.panelPosX = panelPosX;
     this.panelPosY = panelPosY;

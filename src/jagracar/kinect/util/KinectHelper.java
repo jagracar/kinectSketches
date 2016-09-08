@@ -1,7 +1,9 @@
-package kinectScanner;
+package jagracar.kinect.util;
 
 import java.util.ArrayList;
 
+import jagracar.kinect.containers.Scan;
+import jagracar.kinect.containers.Slit;
 import processing.core.PApplet;
 import processing.core.PVector;
 

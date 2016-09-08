@@ -1,4 +1,4 @@
-package kinectScanner;
+package jagracar.kinect.sculpture;
 
 import java.util.ArrayList;
 

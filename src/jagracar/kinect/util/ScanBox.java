@@ -1,8 +1,9 @@
-package kinectScanner;
+package jagracar.kinect.util;
 
 import java.awt.Rectangle;
 
 import gab.opencv.OpenCV;
+import jagracar.kinect.containers.KinectPoints;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PVector;

@@ -1,8 +1,16 @@
-package kinectScanner;
+package sketches.kinectScanner;
 
 import java.util.ArrayList;
 
 import SimpleOpenNI.SimpleOpenNI;
+import jagracar.kinect.containers.KinectPoints;
+import jagracar.kinect.containers.Scan;
+import jagracar.kinect.containers.Slit;
+import jagracar.kinect.sculpture.Sculpture;
+import jagracar.kinect.util.Floor;
+import jagracar.kinect.util.KinectHelper;
+import jagracar.kinect.util.MovingImg;
+import jagracar.kinect.util.ScanBox;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PVector;
@@ -62,7 +70,7 @@ public class KinectScannerSketch extends PApplet {
 	public MovingImg[] brezeln;
 	public PImage backgroundImg;
 	public Floor floor;
-	public KinectControlPanel controlPanel;
+	public ControlPanel controlPanel;
 	public Scan scan;
 	public Scan slitScan;
 	public ArrayList<Scan> scansToAverage = new ArrayList<Scan>();
@@ -152,11 +160,11 @@ public class KinectScannerSketch extends PApplet {
 		// Initialize the sketch floor
 		floor = new Floor(this, color(0));
 
-		// Initialize the Kinect control panel object
-		controlPanel = new KinectControlPanel(this, 0, 0);
+		// Initialize the control panel object
+		controlPanel = new ControlPanel(this, 0, 0);
 
 		// Start the control panel. This should come after all the other definitions
-		PApplet.runSketch(new String[] { KinectControlPanel.class.getName() }, controlPanel);
+		PApplet.runSketch(new String[] { ControlPanel.class.getName() }, controlPanel);
 	}
 
 	/**

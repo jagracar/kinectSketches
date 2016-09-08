@@ -58,7 +58,7 @@ public MovingImg bier;
 public MovingImg[] brezeln;
 public PImage backgroundImg;
 public Floor floor;
-public KinectControlPanel controlPanel;
+public ControlPanel controlPanel;
 public Scan scan;
 public Scan slitScan;
 public ArrayList<Scan> scansToAverage = new ArrayList<Scan>();
@@ -149,11 +149,11 @@ public void setup() {
   // Initialize the sketch floor
   floor = new Floor(this, color(0));
 
-  // Initialize the Kinect control panel object
-  controlPanel = new KinectControlPanel(this, 0, 0);
+  // Initialize the control panel object
+  controlPanel = new ControlPanel(this, 0, 0);
 
   // Start the control panel. This should come after all the other definitions
-  PApplet.runSketch(new String[] { KinectControlPanel.class.getName() }, controlPanel);
+  PApplet.runSketch(new String[] { ControlPanel.class.getName() }, controlPanel);
 }
 
 /**

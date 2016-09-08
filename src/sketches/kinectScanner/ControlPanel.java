@@ -1,4 +1,4 @@
-package kinectScanner;
+package sketches.kinectScanner;
 
 import controlP5.Bang;
 import controlP5.ControlEvent;
@@ -10,6 +10,7 @@ import controlP5.Range;
 import controlP5.Slider;
 import controlP5.Textfield;
 import controlP5.Toggle;
+import jagracar.kinect.util.KinectHelper;
 import processing.core.PApplet;
 
 /**
@@ -17,7 +18,7 @@ import processing.core.PApplet;
  * 
  * @author Javier Graciá Carpio (jagracar)
  */
-public class KinectControlPanel extends PApplet {
+public class ControlPanel extends PApplet {
 
 	/**
 	 * The main ControlP5 object
@@ -125,13 +126,13 @@ public class KinectControlPanel extends PApplet {
 	private String[] drawingColors = new String[] { "Real colors", "Red", "Green", "Blue" };
 
 	/**
-	 * Constructs the KinectControlPanel object
+	 * Constructs the ControlPanel object
 	 * 
 	 * @param p the main Kinect scanner sketch applet
 	 * @param panelPosX the control panel x position
 	 * @param panelPosY the control panel y position
 	 */
-	public KinectControlPanel(KinectScannerSketch p, int panelPosX, int panelPosY) {
+	public ControlPanel(KinectScannerSketch p, int panelPosX, int panelPosY) {
 		this.p = p;
 		this.panelPosX = panelPosX;
 		this.panelPosY = panelPosY;

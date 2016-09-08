@@ -1,4 +1,4 @@
-package kinectScanner;
+package jagracar.kinect.sculpture;
 
 import processing.core.PApplet;
 import toxi.geom.Vec3D;

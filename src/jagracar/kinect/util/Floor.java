@@ -1,4 +1,4 @@
-package kinectScanner;
+package jagracar.kinect.util;
 
 import processing.core.PApplet;
 import processing.core.PImage;
