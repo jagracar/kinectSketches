@@ -21,10 +21,9 @@ You also need to install the [libfreenect](https://github.com/OpenKinect/libfree
 
 # Kinect 3D scanner demo
 
-Some time ago I made a video showing how to use the Kinect Scanner. It's based on an older version of the sketch, but it is still useful to get an idea.
+Some time ago I made a video showing how to use the Kinect Scanner. It's based on an older version of the sketch, but it is probably still useful to get an idea. Click on the image to be redirected to the vimeo video.
  
-<a href="http://www.youtube.com/watch?feature=player_embedded&v=-17Smxy66qM
-" target="_blank"><img src="http://img.youtube.com/vi/-17Smxy66qM/0.jpg" 
-alt="tutorial" width="240" height="180" border="10" /></a>
+<a href="https://vimeo.com/53285159" target="_blank"><img src="https://vimeo.com/53285159/og_image_watermark/367931714" 
+alt="tutorial" width="640" height="398" border="10" /></a>
 
 Have fun!
