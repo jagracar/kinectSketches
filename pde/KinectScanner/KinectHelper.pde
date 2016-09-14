@@ -121,4 +121,47 @@ class KinectHelper {
 
     return scan;
   }
+
+
+  /**
+   	 * Creates an image with a circular color gradient
+   	 * 
+   	 * @param p the parent Processing applet
+   	 * @param centralColor the image central color
+   	 * @param borderColor the image border color
+   	 * @return the image with the circular color gradient
+   	 */
+  public PImage createGradientImg(PApplet p, int centralColor, int borderColor) {
+    // Create the image with the same dimensions as the sketch applet
+    PImage img = p.createImage(p.width, p.height, PApplet.RGB);
+
+    // Set the image pixel colors
+    float rowCenter = 0.5f * img.height;
+    float colCenter = 0.5f * img.width;
+    float maxRadius = PApplet.sqrt(PApplet.sq(colCenter) + PApplet.sq(rowCenter));
+    float centralRed = p.red(centralColor);
+    float centralGreen = p.green(centralColor);
+    float centralBlue = p.blue(centralColor);
+    float borderRed = p.red(borderColor);
+    float borderGreen = p.green(borderColor);
+    float borderBlue = p.blue(borderColor);
+
+    img.loadPixels();
+
+    for (int row = 0; row < img.height; row++) {
+      for (int col = 0; col < img.width; col++) {
+        int index = col + row * img.width;
+        float relativeDist = PApplet.sqrt(PApplet.sq(col - colCenter) + PApplet.sq(row - rowCenter))
+          / maxRadius;
+        float pixelRed = (1 - relativeDist) * centralRed + relativeDist * borderRed;
+        float pixelGreen = (1 - relativeDist) * centralGreen + relativeDist * borderGreen;
+        float pixelBlue = (1 - relativeDist) * centralBlue + relativeDist * borderBlue;
+        img.pixels[index] = color(pixelRed, pixelGreen, pixelBlue);
+      }
+    }
+
+    img.updatePixels();
+
+    return img;
+  }
 }

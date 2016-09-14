@@ -32,7 +32,7 @@ public class Sculpture {
 	/**
 	 * The number of vertices between two spline control points
 	 */
-	private int nSubdivisions;
+	private int subdivisions;
 
 	/**
 	 * The 3D spline curve
@@ -54,12 +54,12 @@ public class Sculpture {
 	 * 
 	 * @param sectionRadius the sculpture section radius
 	 * @param sectionSides the number of sculpture section sides
-	 * @param nSubdivisions the number of spline vertices between to control points
+	 * @param subdivisions the number of spline vertices between to control points
 	 */
-	public Sculpture(float sectionRadius, int sectionSides, int nSubdivisions) {
+	public Sculpture(float sectionRadius, int sectionSides, int subdivisions) {
 		this.sectionRadius = sectionRadius;
 		this.sectionSides = sectionSides;
-		this.nSubdivisions = nSubdivisions;
+		this.subdivisions = subdivisions;
 		this.spline = new Spline3D();
 		this.previousPoint = new Vec3D();
 		this.sections = new ArrayList<SculptureSection>();
@@ -120,6 +120,20 @@ public class Sculpture {
 	}
 
 	/**
+	 * Sets the number of spline vertices between to control points
+	 * 
+	 * @param newSubdivisions the new number of spline vertices between to control points
+	 */
+	public void setSubdivisions(int newSubdivisions) {
+		if (subdivisions != newSubdivisions && newSubdivisions > 1) {
+			subdivisions = newSubdivisions;
+
+			// Calculate the sculpture sections
+			calculateSections();
+		}
+	}
+
+	/**
 	 * Returns the number of sculpture section radius
 	 * 
 	 * @return the number of sculpture section radius
@@ -138,6 +152,15 @@ public class Sculpture {
 	}
 
 	/**
+	 * Returns the number of spline vertices between to control points
+	 * 
+	 * @return the number of spline vertices between to control points
+	 */
+	public int getSubdivisions() {
+		return subdivisions;
+	}
+
+	/**
 	 * Calculates the sculpture sections between consecutive spline vertices
 	 */
 	private void calculateSections() {
@@ -146,7 +169,7 @@ public class Sculpture {
 
 		if (getNumControlPoints() > 1) {
 			// Obtain the new sections
-			ArrayList<Vec3D> vertices = (ArrayList<Vec3D>) spline.computeVertices(nSubdivisions);
+			ArrayList<Vec3D> vertices = (ArrayList<Vec3D>) spline.computeVertices(subdivisions);
 			Vec3D refPoint = new Vec3D();
 			Vec3D refNormal = vertices.get(1).sub(vertices.get(0)).normalize();
 
@@ -170,11 +193,13 @@ public class Sculpture {
 	}
 
 	/**
-	 * Centers the sculpture
+	 * Centers the sculpture at a given position
+	 * 
+	 * @param newCenter the sculpture new central position
 	 */
-	public void center() {
-		if (getNumControlPoints() > 1) {
-			// Find the center of the sculpture
+	public void center(PVector newCenter) {
+		if (getNumControlPoints() > 0) {
+			// Find the current center of the sculpture
 			Vec3D sculptureCenter = new Vec3D();
 			ArrayList<Vec3D> controlPoints = (ArrayList<Vec3D>) spline.getPointList();
 
@@ -183,6 +208,9 @@ public class Sculpture {
 			}
 
 			sculptureCenter.scaleSelf(1f / controlPoints.size());
+
+			// Subtract the new center to the current center
+			sculptureCenter.subSelf(newCenter.x, newCenter.y, newCenter.z);
 
 			// Update the spline control points
 			for (Vec3D controlPoint : controlPoints) {
@@ -193,6 +221,56 @@ public class Sculpture {
 
 			// Calculate the sculpture sections
 			calculateSections();
+		}
+	}
+
+	/**
+	 * Calculates the corner limits that contain all the sculpture control points
+	 * 
+	 * @return a points array with the lower and upper corner limits
+	 */
+	public PVector[] calculateLimits() {
+		// Get the control points
+		ArrayList<Vec3D> controlPoints = (ArrayList<Vec3D>) spline.getPointList();
+
+		float xMin = Float.MAX_VALUE;
+		float yMin = Float.MAX_VALUE;
+		float zMin = Float.MAX_VALUE;
+		float xMax = -Float.MAX_VALUE;
+		float yMax = -Float.MAX_VALUE;
+		float zMax = -Float.MAX_VALUE;
+
+		for (Vec3D point : controlPoints) {
+			if (point.x < xMin) {
+				xMin = point.x;
+			}
+
+			if (point.x > xMax) {
+				xMax = point.x;
+			}
+
+			if (point.y < yMin) {
+				yMin = point.y;
+			}
+
+			if (point.y > yMax) {
+				yMax = point.y;
+			}
+
+			if (point.z < zMin) {
+				zMin = point.z;
+			}
+
+			if (point.z > zMax) {
+				zMax = point.z;
+			}
+		}
+
+		// Check that there was at least a visible point
+		if ((xMax - xMin) >= 0) {
+			return new PVector[] { new PVector(xMin, yMin, zMin), new PVector(xMax, yMax, zMax) };
+		} else {
+			return null;
 		}
 	}
 

@@ -127,6 +127,52 @@ public class Scan extends KinectPoints {
 	}
 
 	/**
+	 * Initializes the scan points and colors from a file
+	 * 
+	 * @param p the parent Processing applet
+	 * @param fileName the file name
+	 */
+	public void initFromFile(PApplet p, String fileName) {
+		// Load the file lines containing the scan
+		String[] fileLines = p.loadStrings(fileName);
+
+		// The scan dimensions should be in the first line
+		String[] dimensions = fileLines[0].split(" ");
+
+		// Reset the scan variables
+		width = Integer.valueOf(dimensions[0]);
+		height = Integer.valueOf(dimensions[1]);
+		nPoints = width * height;
+		points = new PVector[nPoints];
+		colors = new int[nPoints];
+		visibilityMask = new boolean[nPoints];
+		center.set(0, 0, 0);
+
+		// Fill the arrays
+		int counter = 0;
+
+		for (int i = 0; i < nPoints; i++) {
+			String[] pointsAndColors = fileLines[i + 1].split(" ");
+
+			if (Float.valueOf(pointsAndColors[3]) > 0) {
+				points[i] = new PVector(Float.valueOf(pointsAndColors[0]), Float.valueOf(pointsAndColors[1]),
+						Float.valueOf(pointsAndColors[2]));
+				colors[i] = p.color(Float.valueOf(pointsAndColors[3]), Float.valueOf(pointsAndColors[4]),
+						Float.valueOf(pointsAndColors[5]));
+				visibilityMask[i] = true;
+				center.add(points[i]);
+				counter++;
+			} else {
+				points[i] = new PVector();
+			}
+		}
+
+		if (counter > 0) {
+			center.div(counter);
+		}
+	}
+
+	/**
 	 * Save the scan points and colors on a file
 	 * 
 	 * @param p the parent Processing applet

@@ -142,12 +142,12 @@ public void setup() {
     brezeln[i] = brezel;
   }
 
-  // Load the image that will be used as sketch background
-  // backgroundImg = loadImage("background.jpg");
-  backgroundImg = null;
+  // Load or create the image that will be used as sketch background
+  // backgroundImg = loadImage(imgDir + "background.jpg");
+  backgroundImg = helper.createGradientImg(this, color(240), color(150));
 
   // Initialize the sketch floor
-  floor = new Floor(this, color(0));
+  floor = new Floor(this, color(50));
 
   // Initialize the control panel object
   controlPanel = new ControlPanel(this, 0, 0);

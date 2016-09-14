@@ -52,7 +52,7 @@ class ControlPanel extends PApplet {
   private int marginY = 10;
 
   /**
-   * The horizontal separation between controller
+   * The horizontal separation between controllers
    */
   private int deltaX = 110;
 
@@ -132,7 +132,7 @@ class ControlPanel extends PApplet {
   }
 
   /**
-   * Adds and initialized all the panel controllers
+   * Adds and initializes all the panel controllers
    */
   public void setup() {
     // Move the control panel to the desired screen position and change the title
@@ -141,6 +141,9 @@ class ControlPanel extends PApplet {
 
     // Create the ControlP5 object
     cp5 = new ControlP5(this);
+
+    // Do not broadcast events yet
+    cp5.setBroadcast(false);
 
     // Set the drawing mode and color iterator values
     drawingModeIterator = p.drawAsBands ? 0 : (p.drawAsPixels ? 1 : 2);
@@ -497,6 +500,9 @@ class ControlPanel extends PApplet {
       }
     }
     );
+
+    // Start broadcasting events
+    cp5.setBroadcast(true);
   }
 
   /**
