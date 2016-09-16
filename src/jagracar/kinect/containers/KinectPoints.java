@@ -589,7 +589,7 @@ public class KinectPoints {
 	 * @param point2 the second point
 	 * @param point3 the third point
 	 */
-	private void drawTriangle(PApplet p, PVector point1, PVector point2, PVector point3) {
+	protected void drawTriangle(PApplet p, PVector point1, PVector point2, PVector point3) {
 		if (KinectPoints.connected(point1, point2) && KinectPoints.connected(point1, point3)
 				&& KinectPoints.connected(point2, point3)) {
 			p.beginShape(PApplet.TRIANGLES);
@@ -611,7 +611,7 @@ public class KinectPoints {
 	 * @param color2 the second point color
 	 * @param color3 the third point color
 	 */
-	private void drawTriangle(PApplet p, PVector point1, PVector point2, PVector point3, int color1, int color2,
+	protected void drawTriangle(PApplet p, PVector point1, PVector point2, PVector point3, int color1, int color2,
 			int color3) {
 		if (KinectPoints.connected(point1, point2) && KinectPoints.connected(point1, point3)
 				&& KinectPoints.connected(point2, point3)) {

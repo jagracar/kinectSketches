@@ -26,7 +26,7 @@ public class ScanViewerSketch extends PApplet {
 	public ControlPanel controlPanel;
 
 	// Scene perspective variables
-	public float zoom = 1.0f;
+	public float zoom = 1.5f;
 	public float rotX = PI;
 	public float rotY = 0;
 
@@ -44,6 +44,9 @@ public class ScanViewerSketch extends PApplet {
 		// Load the scan
 		scan = new Scan(100, 100);
 		scan.initFromFile(this, scanDir + fileName);
+		scan.reduceResolution(this, 2);
+		scan.calculateNormals();
+		scan.calculateBackPoints();
 
 		// Calculate the sculpture limits to use them for the floor dimensions, adding some offset in the y direction
 		limits = scan.calculateLimits();
@@ -75,16 +78,24 @@ public class ScanViewerSketch extends PApplet {
 		}
 
 		// Define the scene lights if we are not using real colors
-		// setSceneLights();
 
 		// Position the scene
+		pushMatrix();
 		translate(width / 2, height / 2, 0);
 		rotateX(rotX);
 		rotateY(rotY);
 		scale(zoom);
 
 		// Draw the sculpture
-		scan.drawAsBands(this,1);
+		scan.drawAsTriangles(this);
+		popMatrix();
+
+		setSceneLights();
+		translate(width / 2, height / 2, 0);
+		rotateX(rotX);
+		rotateY(rotY);
+		scale(zoom);
+		scan.drawBackSide(this, color(255));
 
 		// Disable the z-buffer to paint the control panel on top of the screen
 		hint(DISABLE_DEPTH_TEST);

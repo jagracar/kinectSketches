@@ -444,14 +444,14 @@ public class ControlPanel extends PApplet {
 		slider.setGroup(sculptureGroup);
 
 		bang = cp5.addBang("sculptureBang");
-		bang.setPosition(marginX, marginY + 2*deltaY);
+		bang.setPosition(marginX, marginY + 2 * deltaY);
 		bang.setSize(buttonSize, buttonSize);
 		bang.setCaptionLabel("Start sculpture");
 		bang.getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).setPaddingX(padding);
 		bang.setGroup(sculptureGroup);
 
 		toogle = cp5.addToggle("drawSculpture");
-		toogle.setPosition(marginX + deltaX, marginY + 2*deltaY);
+		toogle.setPosition(marginX + deltaX, marginY + 2 * deltaY);
 		toogle.setSize(buttonSize, buttonSize);
 		toogle.setValue(p.drawSculpture);
 		toogle.setCaptionLabel("Draw sculpture");
@@ -459,7 +459,7 @@ public class ControlPanel extends PApplet {
 		toogle.setGroup(sculptureGroup);
 
 		bang = cp5.addBang("clearSculpture");
-		bang.setPosition(marginX + 2 * deltaX, marginY + 2*deltaY);
+		bang.setPosition(marginX + 2 * deltaX, marginY + 2 * deltaY);
 		bang.setSize(buttonSize, buttonSize);
 		bang.setCaptionLabel("Clear");
 		bang.getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).setPaddingX(padding);
@@ -513,7 +513,7 @@ public class ControlPanel extends PApplet {
 				processEvent(event);
 			}
 		});
-		
+
 		// Start broadcasting events
 		cp5.setBroadcast(true);
 	}

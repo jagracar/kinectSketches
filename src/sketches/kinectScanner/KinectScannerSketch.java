@@ -301,6 +301,7 @@ public class KinectScannerSketch extends PApplet {
 		// Save the last scan taken
 		if (saveScan) {
 			if (scan != null) {
+				scan.crop();
 				String scanFileName = outputDir + fileName + "-" + scanCounter + ".points";
 				scan.savePoints(this, scanFileName);
 				println("Save scan: 3D points saved in " + scanFileName);
@@ -329,6 +330,7 @@ public class KinectScannerSketch extends PApplet {
 		if (saveSlitScan) {
 			if (slitScan != null) {
 				slitScanCounter++;
+				slitScan.crop();
 				String slitScanFileName = outputDir + fileName + "-slit" + slitScanCounter + ".points";
 				slitScan.savePoints(this, slitScanFileName);
 				println("Save slit scan: 3D points saved in " + slitScanFileName);

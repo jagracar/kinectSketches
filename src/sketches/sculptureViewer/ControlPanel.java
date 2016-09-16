@@ -67,7 +67,7 @@ public class ControlPanel {
 	public void setup() {
 		// Create the ControlP5 object
 		cp5 = new ControlP5(p);
-		
+
 		cp5.setBroadcast(false);
 
 		Slider slider = cp5.addSlider("sides");
