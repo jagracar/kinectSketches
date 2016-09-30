@@ -5,7 +5,7 @@ import processing.core.PImage;
 import processing.core.PVector;
 
 /**
- * Class used to represent the sketch floor
+ * Class used to represent the sketch floor in 3D
  * 
  * @author Javier Graciá Carpio (jagracar)
  */
@@ -26,14 +26,10 @@ public class Floor {
 		this.texture = p.createImage(10, 150, PApplet.ARGB);
 
 		// Set the texture pixel colors
-		float redColor = p.red(color);
-		float greenColor = p.green(color);
-		float blueColor = p.blue(color);
-
 		this.texture.loadPixels();
 
 		for (int y = 0; y < texture.height; y++) {
-			int rowColor = p.color(redColor, greenColor, blueColor, Math.min(y, 255));
+			int rowColor = (color & 0x00ffffff) | (Math.min(y, 255) << 24);
 
 			for (int x = 0; x < texture.width; x++) {
 				texture.pixels[x + y * texture.width] = rowColor;

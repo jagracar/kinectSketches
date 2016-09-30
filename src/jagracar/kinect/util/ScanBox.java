@@ -1,18 +1,12 @@
 package jagracar.kinect.util;
 
-import java.awt.Rectangle;
-
-import gab.opencv.OpenCV;
+import jagracar.kinect.containers.KinectHelper;
 import jagracar.kinect.containers.KinectPoints;
 import processing.core.PApplet;
-import processing.core.PImage;
 import processing.core.PVector;
 
 /**
  * This class defines a box inside of which the Kinect scans are taken
- *
- * Uses OpenCV 2 to center the box in the first detected face. If you don't have OpenCV installed in your computer, you
- * should comment the lines inside the centerInFace() function, but centerInFace() still needs to be defined.
  * 
  * @author Javier Graciá Carpio (jagracar)
  */
@@ -57,12 +51,13 @@ public class ScanBox {
 	 * 
 	 * @param p the parent Processing applet
 	 * @param color the color to use
+	 * @param strokeWeight the stroke weight to use
 	 */
-	public void draw(PApplet p, int color) {
+	public void draw(PApplet p, int color, float strokeWeight) {
 		p.pushStyle();
 		p.noFill();
 		p.stroke(color);
-		p.strokeWeight(1);
+		p.strokeWeight(strokeWeight);
 		p.pushMatrix();
 		p.translate(center.x, center.y, center.z);
 		p.line(-size, 0, 0, size, 0, 0);
@@ -81,49 +76,21 @@ public class ScanBox {
 	 * @return true if a face was detected and the box position was centered on the face
 	 */
 	public boolean centerInFace(PApplet p, KinectPoints kp) {
-		// Create an image with only the visible points color information
-		PImage img = p.createImage(kp.width, kp.height, PApplet.RGB);
-		img.loadPixels();
-
-		for (int i = 0; i < kp.nPoints; i++) {
-			if (kp.visibilityMask[i]) {
-				img.pixels[i] = kp.colors[i];
-			}
-		}
-
-		img.updatePixels();
-
-		// Initialize OpenCV
-		OpenCV opencv = new OpenCV(p, img);
-		opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE);
-
-		// Detect faces in the image
-		Rectangle[] faces = opencv.detect();
-		System.out.println("Center in face: " + faces.length + " face detected");
+		// Detect a face on the Kinect points
+		PVector facePosition = KinectHelper.detectFace(p, kp);
 
 		// Check if a face was detected
-		boolean boxCentered = false;
+		boolean faceDetected = facePosition != null;
 
-		if (faces.length > 0) {
-			// Get the first face 3D position
-			Rectangle face = faces[0];
-			int x = face.x + (int) (face.width / 2);
-			int y = face.y + (int) (face.height / 2);
-			int index = x + y * kp.width;
-
-			if (kp.visibilityMask[index]) {
-				// Center the box on the face with a small offset in the z direction
-				center.set(kp.points[index]);
-				center.add(0, 0, 100);
-				System.out.println("Center in face: Done (centered in the first face)");
-				boxCentered = true;
-			} else {
-				System.out.println("Center in face: Invalid point. Try again");
-			}
+		if (faceDetected) {
+			// Center the box on the face with a small offset in the z direction
+			center.set(facePosition);
+			center.add(0, 0, 0.2f * size);
+			System.out.println("Center in face: Done (centered in the first face)");
 		} else {
 			System.out.println("Center in face: Nothing done. Try again");
 		}
 
-		return boxCentered;
+		return faceDetected;
 	}
 }

@@ -14,7 +14,7 @@ public class MovingImg {
 	/**
 	 * The image array
 	 */
-	private PImage img;
+	protected PImage img;
 
 	/**
 	 * The image position
@@ -37,7 +37,7 @@ public class MovingImg {
 	public boolean visible;
 
 	/**
-	 * Constructs a MovingImg object
+	 * Constructs a moving image object
 	 * 
 	 * @param img the image array
 	 */
@@ -60,9 +60,11 @@ public class MovingImg {
 	 * Checks if the image is close to a given position
 	 * 
 	 * @param positionToCheck the position to check
+	 * @param maximumDistance the maximum distance to consider the position close to the image
+	 * @return true if the given position is close enough to the image
 	 */
-	public boolean closeToPosition(PVector positionToCheck) {
-		return position.dist(positionToCheck) < 100;
+	public boolean closeToPosition(PVector positionToCheck, float maximumDistance) {
+		return position.dist(positionToCheck) < maximumDistance;
 	}
 
 	/**

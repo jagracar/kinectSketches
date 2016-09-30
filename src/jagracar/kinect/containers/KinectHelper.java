@@ -1,9 +1,9 @@
-package jagracar.kinect.util;
+package jagracar.kinect.containers;
 
+import java.awt.Rectangle;
 import java.util.ArrayList;
 
-import jagracar.kinect.containers.Scan;
-import jagracar.kinect.containers.Slit;
+import gab.opencv.OpenCV;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PVector;
@@ -16,7 +16,7 @@ import processing.core.PVector;
 public class KinectHelper {
 
 	/**
-	 * This class has no public constructor
+	 * This class has no public constructor, only static methods
 	 */
 	private KinectHelper() {
 
@@ -63,6 +63,9 @@ public class KinectHelper {
 				averageScan.visibilityMask[i] = true;
 			}
 		}
+
+		// Calculate the scan specific arrays
+		averageScan.calculateScanSpecificArrays(false);
 
 		return averageScan;
 	}
@@ -129,48 +132,56 @@ public class KinectHelper {
 			}
 		}
 
+		// Calculate the scan specific arrays
+		scan.calculateScanSpecificArrays(false);
+
 		return scan;
 	}
 
 	/**
-	 * Creates an image with a circular color gradient
+	 * Detects a face inside the provided Kinect points and returns the face position. This method uses OpenCV 2 to
+	 * detect the faces. If you don't have OpenCV installed in your computer, you should comment the lines inside this
+	 * function and return always null.
 	 * 
 	 * @param p the parent Processing applet
-	 * @param centralColor the image central color
-	 * @param borderColor the image border color
-	 * @return the image with the circular color gradient
+	 * @param kp the Kinect points that should be used to detect the face
+	 * @return the face position if a face was detected, null otherwise
 	 */
-	public static PImage createGradientImg(PApplet p, int centralColor, int borderColor) {
-		// Create the image with the same dimensions as the sketch applet
-		PImage img = p.createImage(p.width, p.height, PApplet.RGB);
-
-		// Set the image pixel colors
-		float rowCenter = 0.5f * img.height;
-		float colCenter = 0.5f * img.width;
-		float maxRadius = PApplet.sqrt(PApplet.sq(colCenter) + PApplet.sq(rowCenter));
-		float centralRed = p.red(centralColor);
-		float centralGreen = p.green(centralColor);
-		float centralBlue = p.blue(centralColor);
-		float borderRed = p.red(borderColor);
-		float borderGreen = p.green(borderColor);
-		float borderBlue = p.blue(borderColor);
-
+	public static PVector detectFace(PApplet p, KinectPoints kp) {
+		// Create an image with only the visible points color information
+		PImage img = p.createImage(kp.width, kp.height, PApplet.RGB);
 		img.loadPixels();
 
-		for (int row = 0; row < img.height; row++) {
-			for (int col = 0; col < img.width; col++) {
-				int index = col + row * img.width;
-				float relativeDist = PApplet.sqrt(PApplet.sq(col - colCenter) + PApplet.sq(row - rowCenter))
-						/ maxRadius;
-				float pixelRed = (1 - relativeDist) * centralRed + relativeDist * borderRed;
-				float pixelGreen = (1 - relativeDist) * centralGreen + relativeDist * borderGreen;
-				float pixelBlue = (1 - relativeDist) * centralBlue + relativeDist * borderBlue;
-				img.pixels[index] = p.color(pixelRed, pixelGreen, pixelBlue);
+		for (int i = 0; i < kp.nPoints; i++) {
+			if (kp.visibilityMask[i]) {
+				img.pixels[i] = kp.colors[i];
 			}
 		}
 
 		img.updatePixels();
 
-		return img;
+		// Initialize OpenCV
+		OpenCV opencv = new OpenCV(p, img);
+		opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE);
+
+		// Detect faces in the image
+		Rectangle[] faces = opencv.detect();
+		System.out.println("Detect face: " + faces.length + " faces detected");
+
+		// Obtain the first detected face central position
+		PVector faceCenter = null;
+
+		if (faces.length > 0) {
+			Rectangle face = faces[0];
+			int x = face.x + (int) (face.width / 2);
+			int y = face.y + (int) (face.height / 2);
+			int index = x + y * kp.width;
+
+			if (kp.visibilityMask[index]) {
+				faceCenter = kp.points[index].copy();
+			}
+		}
+
+		return faceCenter;
 	}
 }

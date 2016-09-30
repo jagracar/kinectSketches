@@ -10,7 +10,7 @@ import controlP5.Range;
 import controlP5.Slider;
 import controlP5.Textfield;
 import controlP5.Toggle;
-import jagracar.kinect.util.KinectHelper;
+import jagracar.kinect.containers.KinectHelper;
 import processing.core.PApplet;
 
 /**

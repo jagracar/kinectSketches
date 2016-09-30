@@ -17,37 +17,37 @@ public class Sculpture {
 	/**
 	 * The minimum distance allowed between two consecutive spline control points
 	 */
-	private static final float MINIMUM_DISTANCE_SQ = 50 * 50;
+	protected static final float MINIMUM_DISTANCE_SQ = 50 * 50;
 
 	/**
 	 * The sculpture section radius
 	 */
-	private float sectionRadius;
+	protected float sectionRadius;
 
 	/**
 	 * The number of sides in each section
 	 */
-	private int sectionSides;
+	protected int sectionSides;
 
 	/**
 	 * The number of vertices between two spline control points
 	 */
-	private int subdivisions;
+	protected int subdivisions;
 
 	/**
 	 * The 3D spline curve
 	 */
-	private Spline3D spline;
+	protected Spline3D spline;
 
 	/**
 	 * The last control point added to the spline
 	 */
-	private Vec3D previousPoint;
+	protected Vec3D previousPoint;
 
 	/**
 	 * The sections array list
 	 */
-	private ArrayList<SculptureSection> sections;
+	protected ArrayList<SculptureSection> sections;
 
 	/**
 	 * Constructs an empty sculpture
@@ -163,7 +163,7 @@ public class Sculpture {
 	/**
 	 * Calculates the sculpture sections between consecutive spline vertices
 	 */
-	private void calculateSections() {
+	protected void calculateSections() {
 		// Clear the sections array
 		sections.clear();
 

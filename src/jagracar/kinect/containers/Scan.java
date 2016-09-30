@@ -13,44 +13,44 @@ import processing.core.PVector;
 public class Scan extends KinectPoints {
 
 	/**
-	 * The scan center
-	 */
-	public PVector center;
-
-	/**
 	 * Array containing the column position of the first valid point from a given row
 	 */
-	public int[] ini;
+	protected int[] ini;
 
 	/**
 	 * Array containing the column position of the last valid point from a given row
 	 */
-	public int[] end;
+	protected int[] end;
 
 	/**
 	 * Array indicating if a given row is empty because there are no valid points
 	 */
-	public boolean[] empty;
+	protected boolean[] empty;
+
+	/**
+	 * The scan center
+	 */
+	protected PVector center;
 
 	/**
 	 * The column and row of the scan point that is closer to the scan center in the (x, y) plane
 	 */
-	public int[] centralPointPixel;
+	protected int[] centralPointPixel;
 
 	/**
 	 * Coordinates of the scan central point
 	 */
-	public PVector centralPoint;
+	protected PVector centralPoint;
 
 	/**
 	 * Array containing the point normals
 	 */
-	public PVector[] normals;
+	protected PVector[] normals;
 
 	/**
 	 * Array containing the scan back side points coordinates
 	 */
-	public PVector[] backPoints;
+	protected PVector[] backPoints;
 
 	/**
 	 * Constructs an empty Scan object with the specified dimensions
@@ -60,10 +60,10 @@ public class Scan extends KinectPoints {
 	 */
 	public Scan(int width, int height) {
 		super(width, height);
-		this.center = new PVector();
 		this.ini = new int[this.height];
 		this.end = new int[this.height];
 		this.empty = new boolean[this.height];
+		this.center = new PVector();
 		this.centralPointPixel = new int[2];
 		this.centralPoint = new PVector();
 		this.normals = null;
@@ -98,7 +98,7 @@ public class Scan extends KinectPoints {
 	 * 
 	 * @param startFromNull if true, the normals and backPoints array will be set to null before they are recalculated
 	 */
-	private void calculateScanSpecificArrays(boolean startFromNull) {
+	public void calculateScanSpecificArrays(boolean startFromNull) {
 		// Obtain the scan extremes and the scan central point
 		obtainExtremes();
 		obtainCentralPoint();
@@ -125,7 +125,7 @@ public class Scan extends KinectPoints {
 	/**
 	 * Obtains the scan extremes
 	 */
-	private void obtainExtremes() {
+	protected void obtainExtremes() {
 		for (int row = 0; row < height; row++) {
 			int iniCol = -1;
 			int endCol = -1;
@@ -149,7 +149,7 @@ public class Scan extends KinectPoints {
 	/**
 	 * Obtains the coordinates and the column and row values of the scan point closer to the scan center
 	 */
-	private void obtainCentralPoint() {
+	protected void obtainCentralPoint() {
 		float minDistanceSq = Float.MAX_VALUE;
 		centralPointPixel[0] = -1;
 		centralPointPixel[1] = -1;
@@ -193,13 +193,12 @@ public class Scan extends KinectPoints {
 			if (!empty[row]) {
 				for (int col = ini[row]; col <= end[row]; col++) {
 					int index = col + row * width;
+					PVector normal = normals[index];
+					normal.set(0, 0, 0);
 
 					if (visibilityMask[index]) {
-						PVector point = points[index];
-						PVector normal = normals[index];
-
 						// Calculate the average normal value at the given point
-						normal.set(0, 0, 0);
+						PVector point = points[index];
 						int n = 0;
 
 						if (col + 1 < width && visibilityMask[index + 1]) {
@@ -276,13 +275,15 @@ public class Scan extends KinectPoints {
 					int index = col + row * width;
 
 					if (visibilityMask[index]) {
+						float offset = 0.01f;
+
 						if ((col - 1 >= 0) && (col + 1 < width) && (row - 1 >= 0) && (row + 1 < height)
 								&& visibilityMask[index - 1] && visibilityMask[index + 1]
 								&& visibilityMask[index - width] && visibilityMask[index + width]) {
-							backPoints[index].set(points[index]).sub(normals[index].copy().mult(0.1f));
-						} else {
-							backPoints[index].set(points[index]).sub(normals[index].copy().mult(0.01f));
+							offset *= 10f;
 						}
+
+						backPoints[index].set(points[index]).sub(normals[index].copy().mult(offset));
 					}
 				}
 			}
@@ -326,9 +327,9 @@ public class Scan extends KinectPoints {
 
 					// Average between nearby pixels
 					PVector pointAverage = new PVector();
-					float redAverage = 0;
-					float greenAverage = 0;
-					float blueAverage = 0;
+					int redAverage = 0;
+					int greenAverage = 0;
+					int blueAverage = 0;
 					int counter = 0;
 
 					for (int i = -reductionFactor / 2; i <= reductionFactor / 2; i++) {
@@ -341,9 +342,10 @@ public class Scan extends KinectPoints {
 
 								if (visibilityMask[indexNearby]) {
 									pointAverage.add(points[indexNearby]);
-									redAverage += p.red(colors[indexNearby]);
-									greenAverage += p.green(colors[indexNearby]);
-									blueAverage += p.blue(colors[indexNearby]);
+									int color = colors[indexNearby];
+									redAverage += (color >> 16) & 0xff;
+									greenAverage += (color >> 8) & 0xff;
+									blueAverage += color & 0xff;
 									counter++;
 								}
 							}
@@ -352,8 +354,8 @@ public class Scan extends KinectPoints {
 
 					if (counter > 0) {
 						pointsNew[indexNew] = pointAverage.div(counter);
-						colorsNew[indexNew] = p.color(redAverage / counter, greenAverage / counter,
-								blueAverage / counter);
+						colorsNew[indexNew] = ((redAverage / counter) << 16) | ((greenAverage / counter) << 8)
+								| (blueAverage / counter) | 0xff000000;
 						visibilityMaskNew[indexNew] = true;
 					} else {
 						pointsNew[indexNew] = pointAverage;
@@ -412,10 +414,25 @@ public class Scan extends KinectPoints {
 		float cos = PApplet.cos(rotationAngle);
 		float sin = PApplet.sin(rotationAngle);
 
-		for (int i = 0; i < nPoints; i++) {
-			PVector point = points[i];
+		for (PVector point : points) {
 			point.sub(center);
 			point.set(cos * point.x - sin * point.z, point.y, sin * point.x + cos * point.z);
+			point.add(center);
+		}
+
+		// Calculate the scan specific arrays
+		calculateScanSpecificArrays(false);
+	}
+
+	/**
+	 * Increases or decreases the size of the scan by a given factor
+	 * 
+	 * @param scaleFactor the size scaling factor
+	 */
+	public void scale(float scaleFactor) {
+		for (PVector point : points) {
+			point.sub(center);
+			point.mult(scaleFactor);
 			point.add(center);
 		}
 
@@ -488,6 +505,67 @@ public class Scan extends KinectPoints {
 	}
 
 	/**
+	 * Fills the scan holes interpolating between valid points in the same scan row
+	 * 
+	 * @param maxHoleGap the maximum number of points missing in order to fill the hole
+	 */
+	public void fillHoles(int maxHoleGap) {
+		// Fill the holes row by row
+		for (int row = 0; row < height; row++) {
+			if (!empty[row]) {
+				for (int col = ini[row] + 1; col < end[row]; col++) {
+					int index = col + row * width;
+
+					// Check if we are at the beginning of a hole
+					if (!visibilityMask[index]) {
+						// Calculate the limits of the hole
+						int startIndex = index - 1;
+						int finishIndex = startIndex;
+
+						for (int i = col + 1; i <= end[row]; i++) {
+							finishIndex = i + row * width;
+
+							if (visibilityMask[finishIndex]) {
+								// The column loop should continue from the end of the hole
+								col = i;
+								break;
+							}
+						}
+
+						// Fill the hole if the gap is not too big
+						if ((finishIndex - startIndex - 1) <= maxHoleGap) {
+							int startColor = colors[startIndex];
+							int finishColor = colors[finishIndex];
+							int startRed = (startColor >> 16) & 0xff;
+							int startGreen = (startColor >> 8) & 0xff;
+							int startBlue = startColor & 0xff;
+							float gapRed = ((finishColor >> 16) & 0xff) - startRed;
+							float gapGreen = ((finishColor >> 8) & 0xff) - startGreen;
+							float gapBlue = (finishColor & 0xff) - startBlue;
+							PVector gapDirection = PVector.sub(points[finishIndex], points[startIndex]);
+							float delta = 1.0f / (finishIndex - startIndex);
+							float step = 0f;
+
+							for (int i = startIndex + 1; i < finishIndex; i++) {
+								step += delta;
+								int pixelRed = Math.round(startRed + step * gapRed);
+								int pixelGreen = Math.round(startGreen + step * gapGreen);
+								int pixelBlue = Math.round(startBlue + step * gapBlue);
+								points[i].set(points[startIndex]).add(PVector.mult(gapDirection, step));
+								colors[i] = (pixelRed << 16) | (pixelGreen << 8) | pixelBlue | 0xff000000;
+								visibilityMask[i] = true;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Calculate the scan specific arrays
+		calculateScanSpecificArrays(false);
+	}
+
+	/**
 	 * Draws the scan back side as triangles on the screen with a uniform color
 	 * 
 	 * @param p the parent Processing applet
@@ -552,19 +630,27 @@ public class Scan extends KinectPoints {
 		points = new PVector[nPoints];
 		colors = new int[nPoints];
 		visibilityMask = new boolean[nPoints];
-		center.set(0, 0, 0);
+		ini = new int[height];
+		end = new int[height];
+		empty = new boolean[height];
 
 		// Fill the arrays
+		center.set(0, 0, 0);
 		int counter = 0;
 
 		for (int i = 0; i < nPoints; i++) {
 			String[] pointsAndColors = fileLines[i + 1].split(" ");
 
 			if (Float.valueOf(pointsAndColors[3]) > 0) {
-				points[i] = new PVector(Float.valueOf(pointsAndColors[0]), Float.valueOf(pointsAndColors[1]),
-						Float.valueOf(pointsAndColors[2]));
-				colors[i] = p.color(Float.valueOf(pointsAndColors[3]), Float.valueOf(pointsAndColors[4]),
-						Float.valueOf(pointsAndColors[5]));
+				float x = Float.valueOf(pointsAndColors[0]);
+				float y = Float.valueOf(pointsAndColors[1]);
+				float z = Float.valueOf(pointsAndColors[2]);
+				int red = Math.round(Float.valueOf(pointsAndColors[3]));
+				int green = Math.round(Float.valueOf(pointsAndColors[4]));
+				int blue = Math.round(Float.valueOf(pointsAndColors[5]));
+
+				points[i] = new PVector(x, y, z);
+				colors[i] = (red << 16) | (green << 8) | blue | 0xff000000;
 				visibilityMask[i] = true;
 				center.add(points[i]);
 				counter++;
@@ -578,9 +664,6 @@ public class Scan extends KinectPoints {
 		}
 
 		// Calculate the scan specific arrays
-		ini = new int[height];
-		end = new int[height];
-		empty = new boolean[height];
 		calculateScanSpecificArrays(true);
 	}
 
@@ -603,8 +686,10 @@ public class Scan extends KinectPoints {
 				// Center the points coordinates
 				PVector point = PVector.sub(points[i], center);
 				int col = colors[i];
-				lines[i + 1] = point.x + " " + point.y + " " + point.z + " " + p.red(col) + " " + p.green(col) + " "
-						+ p.blue(col);
+				int red = (col >> 16) & 0xff;
+				int green = (col >> 8) & 0xff;
+				int blue = col & 0xff;
+				lines[i + 1] = point.x + " " + point.y + " " + point.z + " " + red + " " + green + " " + blue;
 			} else {
 				// Use a dummy line if the point should be masked
 				lines[i + 1] = "-99" + " " + "-99" + " " + "-99" + " " + "-99" + " " + "-99" + " " + "-99";

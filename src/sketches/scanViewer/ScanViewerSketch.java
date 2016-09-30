@@ -2,7 +2,7 @@ package sketches.scanViewer;
 
 import controlP5.ControlEvent;
 import jagracar.kinect.containers.Scan;
-import jagracar.kinect.util.KinectHelper;
+import jagracar.kinect.util.ImageHelper;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PVector;
@@ -26,7 +26,7 @@ public class ScanViewerSketch extends PApplet {
 	public ControlPanel controlPanel;
 
 	// Scene perspective variables
-	public float zoom = 1.5f;
+	public float zoom = 1.0f;
 	public float rotX = PI;
 	public float rotY = 0;
 
@@ -45,6 +45,8 @@ public class ScanViewerSketch extends PApplet {
 		scan = new Scan(100, 100);
 		scan.initFromFile(this, scanDir + fileName);
 		scan.reduceResolution(this, 2);
+		scan.scale(1.5f);
+		scan.fillHoles(15);
 		scan.calculateNormals();
 		scan.calculateBackPoints();
 
@@ -53,7 +55,7 @@ public class ScanViewerSketch extends PApplet {
 		limits[0].y -= 200;
 
 		// Create the image that will be used as sketch background
-		backgroundImg = KinectHelper.createGradientImg(this, color(240), color(100));
+		backgroundImg = ImageHelper.createGradientImg(this, color(240), color(100));
 
 		// Initialize the control panel object
 		controlPanel = new ControlPanel(this);

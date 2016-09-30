@@ -14,37 +14,37 @@ public class KinectPoints {
 	/**
 	 * Maximum separation between two consecutive points to consider them connected
 	 */
-	public static final float MAX_SEPARATION_SQ = 90 * 90;
+	protected static final float MAX_SEPARATION_SQ = 120 * 120;
 
 	/**
 	 * The arrays horizontal dimension
 	 */
-	public int width;
+	protected int width;
 
 	/**
 	 * The arrays vertical dimension
 	 */
-	public int height;
+	protected int height;
 
 	/**
 	 * Total number of points in the arrays
 	 */
-	public int nPoints;
+	protected int nPoints;
 
 	/**
 	 * Array containing the points coordinates
 	 */
-	public PVector[] points;
+	protected PVector[] points;
 
 	/**
 	 * Array containing the points colors
 	 */
-	public int[] colors;
+	protected int[] colors;
 
 	/**
 	 * Array containing the points visibility mask
 	 */
-	public boolean[] visibilityMask;
+	protected boolean[] visibilityMask;
 
 	/**
 	 * Constructs an empty KinectPoints object with the specified dimensions
@@ -257,7 +257,7 @@ public class KinectPoints {
 	 * @param point2 the second point
 	 * @return true if the points can be considered connected
 	 */
-	private static boolean connected(PVector point1, PVector point2) {
+	protected static boolean connected(PVector point1, PVector point2) {
 		float dx = point1.x - point2.x;
 		float dy = point1.y - point2.y;
 		float dz = point1.z - point2.z;
@@ -486,23 +486,8 @@ public class KinectPoints {
 	 * @param p the parent Processing applet
 	 * @param point1 the first point
 	 * @param point2 the second point
-	 * @param lineColor the line color
 	 */
-	private void drawLine(PApplet p, PVector point1, PVector point2, int lineColor) {
-		if (KinectPoints.connected(point1, point2)) {
-			p.stroke(lineColor);
-			p.line(point1.x, point1.y, point1.z, point2.x, point2.y, point2.z);
-		}
-	}
-
-	/**
-	 * Draws a line between two Kinect points if they are connected
-	 * 
-	 * @param p the parent Processing applet
-	 * @param point1 the first point
-	 * @param point2 the second point
-	 */
-	private void drawLine(PApplet p, PVector point1, PVector point2) {
+	protected void drawLine(PApplet p, PVector point1, PVector point2) {
 		if (KinectPoints.connected(point1, point2)) {
 			p.line(point1.x, point1.y, point1.z, point2.x, point2.y, point2.z);
 		}
@@ -524,18 +509,18 @@ public class KinectPoints {
 
 				if (visibilityMask[index]) {
 					PVector point = points[index];
-					int lineColor = colors[index];
+					p.stroke(colors[index]);
 
 					if (visibilityMask[index + 1]) {
-						drawLine(p, point, points[index + 1], lineColor);
+						drawLine(p, point, points[index + 1]);
 					}
 
 					if (visibilityMask[index + width]) {
-						drawLine(p, point, points[index + width], lineColor);
+						drawLine(p, point, points[index + width]);
 					}
 
 					if (visibilityMask[index + 1 + width]) {
-						drawLine(p, point, points[index + 1 + width], lineColor);
+						drawLine(p, point, points[index + 1 + width]);
 					}
 				}
 			}

@@ -13,32 +13,32 @@ public class Slit {
 	/**
 	 * The minimum point distance with respect to the slit center to consider it as part of the slit
 	 */
-	private static final float MINIMUM_DISTANTE = 5f;
+	protected static final float MINIMUM_DISTANTE = 5f;
 
 	/**
 	 * The slit orientation
 	 */
-	public boolean vertical;
+	protected boolean vertical;
 
 	/**
 	 * The slit central point position
 	 */
-	public PVector center;
+	protected PVector center;
 
 	/**
 	 * Array containing the points coordinates
 	 */
-	public PVector[] points;
+	protected PVector[] points;
 
 	/**
 	 * Array containing the points colors
 	 */
-	public int[] colors;
+	protected int[] colors;
 
 	/**
 	 * Array containing the points visibility mask
 	 */
-	public boolean[] visibilityMask;
+	protected boolean[] visibilityMask;
 
 	/**
 	 * Constructs a slit of the given orientation centered on the scan box position

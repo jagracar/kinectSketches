@@ -3,12 +3,13 @@ package sketches.kinectScanner;
 import java.util.ArrayList;
 
 import SimpleOpenNI.SimpleOpenNI;
+import jagracar.kinect.containers.KinectHelper;
 import jagracar.kinect.containers.KinectPoints;
 import jagracar.kinect.containers.Scan;
 import jagracar.kinect.containers.Slit;
 import jagracar.kinect.sculpture.Sculpture;
 import jagracar.kinect.util.Floor;
-import jagracar.kinect.util.KinectHelper;
+import jagracar.kinect.util.ImageHelper;
 import jagracar.kinect.util.MovingImg;
 import jagracar.kinect.util.ScanBox;
 import processing.core.PApplet;
@@ -39,8 +40,8 @@ public class KinectScannerSketch extends PApplet {
 	public boolean monochrome = false;
 	public int monochromeColor = 255;
 	public int resolution = 2;
-	public PVector[] limits = null;
-	// public PVector[] limits = new PVector[] { new PVector(-1100, -1500, 0), new PVector(1100, 1000, 3300) };
+	// public PVector[] limits = null;
+	public PVector[] limits = new PVector[] { new PVector(-1100, -1500, 0), new PVector(1100, 1000, 3300) };
 	public String fileName = "test";
 	public String outputDir = "out/";
 	public String imgDir = "data/images/";
@@ -143,7 +144,7 @@ public class KinectScannerSketch extends PApplet {
 
 		// Initialize the brezel objects for the Oktoberfest game
 		PImage brezelImg = loadImage(imgDir + "brezel.png");
-		int nBrezeln = 3;
+		int nBrezeln = 30;
 		brezeln = new MovingImg[nBrezeln];
 
 		for (int i = 0; i < nBrezeln; i++) {
@@ -155,7 +156,7 @@ public class KinectScannerSketch extends PApplet {
 
 		// Load or create the image that will be used as sketch background
 		// backgroundImg = loadImage(imgDir + "background.jpg");
-		backgroundImg = KinectHelper.createGradientImg(this, color(240), color(150));
+		backgroundImg = ImageHelper.createGradientImg(this, color(240), color(150));
 
 		// Initialize the sketch floor
 		floor = new Floor(this, color(50));
@@ -227,7 +228,7 @@ public class KinectScannerSketch extends PApplet {
 
 		// Draw the scan box
 		if (drawBox) {
-			box.draw(this, 255);
+			box.draw(this, 255, 1.5f);
 		}
 
 		// Define the scene lights if we are not using real colors
@@ -386,7 +387,7 @@ public class KinectScannerSketch extends PApplet {
 				brezel.update();
 
 				// Move the brezel to a random position if the hand is close enough or it fell too much
-				if ((handPosition != null && brezel.closeToPosition(handPosition))
+				if ((handPosition != null && brezel.closeToPosition(handPosition, 100f))
 						|| (brezel.position.y < limits[0].y + 0.1f * (limits[1].y - limits[0].y))) {
 					brezel.position = getRandomPosition();
 				}

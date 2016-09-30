@@ -13,17 +13,17 @@ public class SculptureSection {
 	/**
 	 * The section center
 	 */
-	public Vec3D center;
+	protected Vec3D center;
 
 	/**
 	 * The section plane normal
 	 */
-	public Vec3D normal;
+	protected Vec3D normal;
 
 	/**
 	 * The section contour points
 	 */
-	public Vec3D[] points;
+	protected Vec3D[] points;
 
 	/**
 	 * Constructs a sculpture section centered on the two given points and perpendicular to their direction

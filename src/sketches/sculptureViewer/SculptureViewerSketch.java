@@ -3,7 +3,7 @@ package sketches.sculptureViewer;
 import controlP5.ControlEvent;
 import jagracar.kinect.sculpture.Sculpture;
 import jagracar.kinect.util.Floor;
-import jagracar.kinect.util.KinectHelper;
+import jagracar.kinect.util.ImageHelper;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PVector;
@@ -55,7 +55,7 @@ public class SculptureViewerSketch extends PApplet {
 		limits[0].y -= 200;
 
 		// Create the image that will be used as sketch background
-		backgroundImg = KinectHelper.createGradientImg(this, color(240), color(100));
+		backgroundImg = ImageHelper.createGradientImg(this, color(240), color(100));
 
 		// Initialize the sketch floor
 		floor = new Floor(this, color(50));
