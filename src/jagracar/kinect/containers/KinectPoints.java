@@ -14,7 +14,7 @@ public class KinectPoints {
 	/**
 	 * Maximum separation between two consecutive points to consider them connected
 	 */
-	protected static final float MAX_SEPARATION_SQ = 120 * 120;
+	protected float maxPointSeparationSq = 120 * 120;
 
 	/**
 	 * The arrays horizontal dimension
@@ -257,12 +257,12 @@ public class KinectPoints {
 	 * @param point2 the second point
 	 * @return true if the points can be considered connected
 	 */
-	protected static boolean connected(PVector point1, PVector point2) {
+	protected boolean connected(PVector point1, PVector point2) {
 		float dx = point1.x - point2.x;
 		float dy = point1.y - point2.y;
 		float dz = point1.z - point2.z;
 
-		return (dx * dx + dy * dy + dz * dz) < MAX_SEPARATION_SQ;
+		return (dx * dx + dy * dy + dz * dz) < maxPointSeparationSq;
 	}
 
 	/**
@@ -339,7 +339,7 @@ public class KinectPoints {
 						p.fill(colors[index]);
 						p.vertex(point.x, point.y, point.z);
 						bandStarted = true;
-					} else if (KinectPoints.connected(point, points[index - 1])) {
+					} else if (connected(point, points[index - 1])) {
 						p.fill(colors[index]);
 						p.vertex(point.x, point.y, point.z);
 					} else {
@@ -357,7 +357,7 @@ public class KinectPoints {
 					if (visibilityMask[lowerIndex]) {
 						PVector lowerPoint = points[lowerIndex];
 
-						if (KinectPoints.connected(point, lowerPoint)) {
+						if (connected(point, lowerPoint)) {
 							p.fill(colors[lowerIndex]);
 							p.vertex(lowerPoint.x, lowerPoint.y, lowerPoint.z);
 						} else {
@@ -375,7 +375,7 @@ public class KinectPoints {
 					if (visibilityMask[lowerIndex]) {
 						PVector lowerPoint = points[lowerIndex];
 
-						if (KinectPoints.connected(lowerPoint, points[index - 1])) {
+						if (connected(lowerPoint, points[index - 1])) {
 							p.fill(colors[lowerIndex]);
 							p.vertex(lowerPoint.x, lowerPoint.y, lowerPoint.z);
 						}
@@ -428,7 +428,7 @@ public class KinectPoints {
 						p.beginShape(PApplet.TRIANGLE_STRIP);
 						p.vertex(point.x, point.y, point.z);
 						bandStarted = true;
-					} else if (KinectPoints.connected(point, points[index - 1])) {
+					} else if (connected(point, points[index - 1])) {
 						p.vertex(point.x, point.y, point.z);
 					} else {
 						p.endShape();
@@ -445,7 +445,7 @@ public class KinectPoints {
 					if (visibilityMask[lowerIndex]) {
 						PVector lowerPoint = points[lowerIndex];
 
-						if (KinectPoints.connected(point, lowerPoint)) {
+						if (connected(point, lowerPoint)) {
 							p.vertex(lowerPoint.x, lowerPoint.y, lowerPoint.z);
 						} else {
 							p.vertex(point.x, point.y, point.z);
@@ -460,7 +460,7 @@ public class KinectPoints {
 					if (visibilityMask[lowerIndex]) {
 						PVector lowerPoint = points[lowerIndex];
 
-						if (KinectPoints.connected(lowerPoint, points[index - 1])) {
+						if (connected(lowerPoint, points[index - 1])) {
 							p.vertex(lowerPoint.x, lowerPoint.y, lowerPoint.z);
 						}
 					}
@@ -488,7 +488,7 @@ public class KinectPoints {
 	 * @param point2 the second point
 	 */
 	protected void drawLine(PApplet p, PVector point1, PVector point2) {
-		if (KinectPoints.connected(point1, point2)) {
+		if (connected(point1, point2)) {
 			p.line(point1.x, point1.y, point1.z, point2.x, point2.y, point2.z);
 		}
 	}
@@ -575,8 +575,7 @@ public class KinectPoints {
 	 * @param point3 the third point
 	 */
 	protected void drawTriangle(PApplet p, PVector point1, PVector point2, PVector point3) {
-		if (KinectPoints.connected(point1, point2) && KinectPoints.connected(point1, point3)
-				&& KinectPoints.connected(point2, point3)) {
+		if (connected(point1, point2) && connected(point1, point3) && connected(point2, point3)) {
 			p.beginShape(PApplet.TRIANGLES);
 			p.vertex(point1.x, point1.y, point1.z);
 			p.vertex(point2.x, point2.y, point2.z);
@@ -598,8 +597,7 @@ public class KinectPoints {
 	 */
 	protected void drawTriangle(PApplet p, PVector point1, PVector point2, PVector point3, int color1, int color2,
 			int color3) {
-		if (KinectPoints.connected(point1, point2) && KinectPoints.connected(point1, point3)
-				&& KinectPoints.connected(point2, point3)) {
+		if (connected(point1, point2) && connected(point1, point3) && connected(point2, point3)) {
 			p.beginShape(PApplet.TRIANGLES);
 			p.fill(color1);
 			p.vertex(point1.x, point1.y, point1.z);
@@ -687,5 +685,13 @@ public class KinectPoints {
 		}
 
 		p.popStyle();
+	}
+
+	/**
+	 * 
+	 * @param newMaxPointSeparation
+	 */
+	public void setMaxPointSeparation(float newMaxPointSeparation) {
+		maxPointSeparationSq = PApplet.sq(newMaxPointSeparation);
 	}
 }

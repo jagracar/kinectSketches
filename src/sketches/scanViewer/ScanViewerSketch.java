@@ -44,8 +44,9 @@ public class ScanViewerSketch extends PApplet {
 		// Load the scan
 		scan = new Scan(100, 100);
 		scan.initFromFile(this, scanDir + fileName);
-		scan.reduceResolution(this, 2);
-		scan.scale(1.5f);
+		scan.reduceResolution(2);
+		scan.scale(5f);
+		scan.gaussianSmooth(5);
 		scan.fillHoles(15);
 		scan.calculateNormals();
 		scan.calculateBackPoints();
@@ -83,21 +84,18 @@ public class ScanViewerSketch extends PApplet {
 
 		// Position the scene
 		pushMatrix();
-		translate(width / 2, height / 2, 0);
+		translate(width / 2f, height / 2f, 0);
 		rotateX(rotX);
 		rotateY(rotY);
 		scale(zoom);
 
-		// Draw the sculpture
+		scan.centerAtScreenPosition(this, mouseX, mouseY, 10 * zoom);
+
 		scan.drawAsTriangles(this);
-		popMatrix();
 
 		setSceneLights();
-		translate(width / 2, height / 2, 0);
-		rotateX(rotX);
-		rotateY(rotY);
-		scale(zoom);
 		scan.drawBackSide(this, color(255));
+		popMatrix();
 
 		// Disable the z-buffer to paint the control panel on top of the screen
 		hint(DISABLE_DEPTH_TEST);

@@ -1,5 +1,7 @@
 package jagracar.kinect.containers;
 
+import java.util.ArrayList;
+
 import jagracar.kinect.util.ScanBox;
 import processing.core.PApplet;
 import processing.core.PImage;
@@ -291,26 +293,12 @@ public class Scan extends KinectPoints {
 	}
 
 	/**
-	 * Reduces the scan resolution by a given factor
-	 * 
-	 * @param reductionFactor the scale reduction factor
-	 */
-	public void reduceResolution(int reductionFactor) {
-		if (reductionFactor > 1) {
-			super.reduceResolution(reductionFactor);
-
-			// Calculate the scan specific arrays
-			calculateScanSpecificArrays(true);
-		}
-	}
-
-	/**
 	 * Reduces the scan resolution by a given factor, smoothing the points at the same time
 	 * 
 	 * @param p the parent Processing applet
 	 * @param reductionFactor the scale reduction factor
 	 */
-	public void reduceResolution(PApplet p, int reductionFactor) {
+	public void reduceResolution(int reductionFactor) {
 		if (reductionFactor > 1) {
 			// Obtain the dimensions of the new reduced arrays
 			int widthNew = width / reductionFactor + 2;
@@ -406,13 +394,32 @@ public class Scan extends KinectPoints {
 	}
 
 	/**
+	 * Translates the scan position
+	 * 
+	 * @param translationVector the translation direction vector
+	 */
+	public void translate(PVector translationVector) {
+		// Translate the scan points
+		for (PVector point : points) {
+			point.add(translationVector);
+		}
+
+		// Translate the scan center
+		center.add(translationVector);
+
+		// Calculate the scan specific arrays
+		calculateScanSpecificArrays(false);
+	}
+
+	/**
 	 * Rotates the scan around the vertical axis
 	 * 
 	 * @param rotationAngle the scan rotation angle in radians
 	 */
 	public void rotate(float rotationAngle) {
-		float cos = PApplet.cos(rotationAngle);
-		float sin = PApplet.sin(rotationAngle);
+		// Rotate the scan points around the scan center
+		float cos = (float) Math.cos(rotationAngle);
+		float sin = (float) Math.sin(rotationAngle);
 
 		for (PVector point : points) {
 			point.sub(center);
@@ -430,6 +437,7 @@ public class Scan extends KinectPoints {
 	 * @param scaleFactor the size scaling factor
 	 */
 	public void scale(float scaleFactor) {
+		// Scale the scan points
 		for (PVector point : points) {
 			point.sub(center);
 			point.mult(scaleFactor);
@@ -438,6 +446,9 @@ public class Scan extends KinectPoints {
 
 		// Calculate the scan specific arrays
 		calculateScanSpecificArrays(false);
+		
+		// Update the maximum scan separation between points
+		setMaxPointSeparation(scaleFactor*PApplet.sqrt(maxPointSeparationSq));
 	}
 
 	/**
@@ -505,6 +516,94 @@ public class Scan extends KinectPoints {
 	}
 
 	/**
+	 * Extends the scan arrays dimensions
+	 * 
+	 * @param widthNew the new arrays horizontal dimension
+	 * @param heightNew the new arrays vertical dimension
+	 */
+	public void extend(int widthNew, int heightNew) {
+		// Check that the new array dimensions are larger than the original ones
+		if (widthNew >= width && heightNew >= height && (widthNew != width || heightNew != height)) {
+			// Obtain the dimensions of the new extended arrays
+			int nPointsNew = widthNew * heightNew;
+			PVector[] pointsNew = new PVector[nPointsNew];
+			int[] colorsNew = new int[nPointsNew];
+			boolean[] visibilityMaskNew = new boolean[nPointsNew];
+
+			// Populate the new arrays
+			int startCol = (widthNew - width) / 2;
+			int startRow = (heightNew - height) / 2;
+
+			for (int i = 0; i < nPointsNew; i++) {
+				pointsNew[i] = new PVector();
+			}
+
+			for (int row = 0; row < height; row++) {
+				for (int col = 0; col < width; col++) {
+					int index = col + row * width;
+					int indexNew = (startCol + col) + (startRow + row) * widthNew;
+					pointsNew[indexNew].set(points[index]);
+					colorsNew[indexNew] = colors[index];
+					visibilityMaskNew[indexNew] = visibilityMask[index];
+				}
+			}
+
+			// Update the arrays to the new dimensions
+			width = widthNew;
+			height = heightNew;
+			nPoints = nPointsNew;
+			points = pointsNew;
+			colors = colorsNew;
+			visibilityMask = visibilityMaskNew;
+
+			// Calculate the scan specific arrays
+			calculateScanSpecificArrays(true);
+		}
+	}
+
+	/**
+	 * Extends the scan arrays dimensions to have the scan central point in the middle of the arrays
+	 */
+	public void centerAndExtend() {
+		// Obtain the dimensions of the new extended arrays
+		int widthNew = 2 * Math.max(centralPointPixel[0], width - 1 - centralPointPixel[0]) + 1;
+		int heightNew = 2 * Math.max(centralPointPixel[1], height - 1 - centralPointPixel[1]) + 1;
+		int nPointsNew = widthNew * heightNew;
+		PVector[] pointsNew = new PVector[nPointsNew];
+		int[] colorsNew = new int[nPointsNew];
+		boolean[] visibilityMaskNew = new boolean[nPointsNew];
+
+		// Populate the new arrays
+		int startCol = centralPointPixel[0] > (width - 1 - centralPointPixel[0]) ? 0 : widthNew - width;
+		int startRow = centralPointPixel[1] > (height - 1 - centralPointPixel[1]) ? 0 : heightNew - height;
+
+		for (int i = 0; i < nPointsNew; i++) {
+			pointsNew[i] = new PVector();
+		}
+
+		for (int row = 0; row < height; row++) {
+			for (int col = 0; col < width; col++) {
+				int index = col + row * width;
+				int indexNew = (startCol + col) + (startRow + row) * widthNew;
+				pointsNew[indexNew].set(points[index]);
+				colorsNew[indexNew] = colors[index];
+				visibilityMaskNew[indexNew] = visibilityMask[index];
+			}
+		}
+
+		// Update the arrays to the new dimensions
+		width = widthNew;
+		height = heightNew;
+		nPoints = nPointsNew;
+		points = pointsNew;
+		colors = colorsNew;
+		visibilityMask = visibilityMaskNew;
+
+		// Calculate the scan specific arrays
+		calculateScanSpecificArrays(true);
+	}
+
+	/**
 	 * Fills the scan holes interpolating between valid points in the same scan row
 	 * 
 	 * @param maxHoleGap the maximum number of points missing in order to fill the hole
@@ -563,6 +662,196 @@ public class Scan extends KinectPoints {
 
 		// Calculate the scan specific arrays
 		calculateScanSpecificArrays(false);
+	}
+
+	/**
+	 * Smoothes the scan points using a Gaussian kernel
+	 * 
+	 * @param kernelSize the kernel size. Should be an odd number larger than 1
+	 */
+	public void gaussianSmooth(int kernelSize) {
+		if (kernelSize > 1) {
+			// Make sure that the kernel size is an even number
+			if (kernelSize % 2 == 0) {
+				kernelSize++;
+			}
+
+			// Create the Gaussian kernel
+			float[][] kernel = new float[kernelSize][kernelSize];
+			int kernelMiddlePoint = (kernelSize - 1) / 2;
+			float maxDistanceSq = PApplet.sq(kernelMiddlePoint);
+			float sigmaSq = PApplet.sq(kernelMiddlePoint / 2f);
+
+			for (int i = 0; i < kernelSize; i++) {
+				for (int j = 0; j < kernelSize; j++) {
+					float distanceSq = PApplet.sq(i - kernelMiddlePoint) + PApplet.sq(j - kernelMiddlePoint);
+
+					if (distanceSq <= maxDistanceSq) {
+						kernel[i][j] = PApplet.pow(2.718f, -distanceSq / (2 * sigmaSq));
+					}
+				}
+			}
+
+			// Calculate the smoothed points
+			PVector[] smoothedPoints = new PVector[nPoints];
+
+			for (int row = 0; row < height; row++) {
+				for (int col = 0; col < width; col++) {
+					int index = col + row * width;
+
+					if (visibilityMask[index]) {
+						PVector center = points[index];
+						PVector pointsSum = new PVector();
+						float kernelValueCounter = 0;
+
+						for (int i = 0; i < kernelSize; i++) {
+							int rowStep = row - kernelMiddlePoint + i;
+
+							for (int j = 0; j < kernelSize; j++) {
+								int colStep = col - kernelMiddlePoint + j;
+
+								if (colStep >= 0 && colStep < width && rowStep >= 0 && rowStep < height) {
+									int indexStep = colStep + rowStep * width;
+
+									if (visibilityMask[indexStep]) {
+										PVector pointStep = points[indexStep];
+										float kernelValue = kernel[i][j];
+
+										if (connected(center, pointStep) && kernelValue != 0) {
+											pointsSum.add(kernelValue * pointStep.x, kernelValue * pointStep.y,
+													kernelValue * pointStep.z);
+											kernelValueCounter += kernelValue;
+										}
+									}
+								}
+							}
+						}
+
+						smoothedPoints[index] = pointsSum.div(kernelValueCounter);
+					} else {
+						smoothedPoints[index] = points[index].copy();
+					}
+				}
+			}
+
+			// Update the points array
+			points = smoothedPoints;
+
+			// Calculate the scan specific arrays
+			calculateScanSpecificArrays(false);
+		}
+	}
+
+	/**
+	 * Sets the scan point that is closest to the given screen position as non-visible
+	 * 
+	 * @param p the parent Processing applet
+	 * @param xScreen the screen x position
+	 * @param yScreen the screen y position
+	 * @param searchRadius the radius to search for close points
+	 */
+	public void disolveUnderScreenPosition(PApplet p, float xScreen, float yScreen, float searchRadius) {
+		int index = getPointIndexUnderScreenPosition(p, xScreen, yScreen, searchRadius);
+
+		if (index >= 0) {
+			visibilityMask[index] = false;
+		}
+	}
+
+	/**
+	 * Returns the array index of the scan point that is closest to a given screen position
+	 * 
+	 * @param p the parent Processing applet
+	 * @param xScreen the screen x position
+	 * @param yScreen the screen y position
+	 * @param searchRadius the radius to search for close points
+	 * @return the array index of the point that is closest to the given screen position
+	 */
+	protected int getPointIndexUnderScreenPosition(PApplet p, float xScreen, float yScreen, float searchRadius) {
+		// Get all the scan points that are close to the given screen position
+		ArrayList<Integer> closePointsIndex = new ArrayList<Integer>();
+		ArrayList<Float> closePointsZValue = new ArrayList<Float>();
+		ArrayList<Float> closePointsDistanceSq = new ArrayList<Float>();
+		float maxDistanceSq = PApplet.sq(searchRadius);
+		float maxZValue = -Float.MAX_VALUE;
+
+		for (int row = 0; row < height; row++) {
+			if (!empty[row]) {
+				for (int col = ini[row]; col <= end[row]; col++) {
+					int index = col + row * width;
+
+					if (visibilityMask[index]) {
+						// Get the point distance to the given screen position
+						PVector point = points[index];
+						float distanceSq = PApplet.sq(xScreen - p.screenX(point.x, point.y, point.z))
+								+ PApplet.sq(yScreen - p.screenY(point.x, point.y, point.z));
+
+						// Select only those points that are close enough
+						if (distanceSq < maxDistanceSq) {
+							// Get the point z value on the current 3D view
+							float zValue = p.modelZ(point.x, point.y, point.z);
+
+							// Save the highest z value
+							if (zValue > maxZValue) {
+								maxZValue = zValue;
+							}
+
+							// Check if the scan has the back points array
+							if (backPoints != null) {
+								// Only select those points that are in front of their back points
+								PVector backPoint = backPoints[index];
+
+								if (zValue > p.modelZ(backPoint.x, backPoint.y, backPoint.z)) {
+									// Save the point information
+									closePointsIndex.add(index);
+									closePointsZValue.add(zValue);
+									closePointsDistanceSq.add(distanceSq);
+								}
+							} else {
+								// Save the point information
+								closePointsIndex.add(index);
+								closePointsZValue.add(zValue);
+								closePointsDistanceSq.add(distanceSq);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Get the point that is closest to the screen position and the highest z value
+		int closestPointIndex = -1;
+		float minDistanceSq = maxDistanceSq;
+
+		for (int i = 0; i < closePointsIndex.size(); i++) {
+			float distanceSq = closePointsDistanceSq.get(i) + PApplet.sq(maxZValue - closePointsZValue.get(i));
+
+			if (distanceSq < minDistanceSq) {
+				closestPointIndex = closePointsIndex.get(i);
+				minDistanceSq = distanceSq;
+			}
+		}
+
+		return closestPointIndex;
+	}
+
+	/**
+	 * Centers the scan at the point that falls at the given screen position
+	 * 
+	 * @param p the parent Processing applet
+	 * @param xScreen the screen x position
+	 * @param yScreen the screen y position
+	 * @param searchRadius the radius to search for close points
+	 */
+	public void centerAtScreenPosition(PApplet p, float xScreen, float yScreen, float searchRadius) {
+		// Get the index of the scan point that is closest to the given screen position
+		int index = getPointIndexUnderScreenPosition(p, xScreen, yScreen, searchRadius);
+
+		// Check that a point was found
+		if (index >= 0) {
+			// Subtract the point coordinates to all the scan points
+			translate(points[index].copy().mult(-1));
+		}
 	}
 
 	/**
