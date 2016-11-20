@@ -64,9 +64,6 @@ public class KinectHelper {
 			}
 		}
 
-		// Calculate the scan specific arrays
-		averageScan.calculateScanSpecificArrays(false);
-
 		return averageScan;
 	}
 
@@ -131,9 +128,6 @@ public class KinectHelper {
 				}
 			}
 		}
-
-		// Calculate the scan specific arrays
-		scan.calculateScanSpecificArrays(false);
 
 		return scan;
 	}

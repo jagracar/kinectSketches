@@ -11,11 +11,6 @@ import processing.core.PVector;
 public class Slit {
 
 	/**
-	 * The minimum point distance with respect to the slit center to consider it as part of the slit
-	 */
-	protected static final float MINIMUM_DISTANTE = 5f;
-
-	/**
 	 * The slit orientation
 	 */
 	protected boolean vertical;
@@ -41,6 +36,11 @@ public class Slit {
 	protected boolean[] visibilityMask;
 
 	/**
+	 * The minimum point distance with respect to the slit center to consider it as part of the slit
+	 */
+	protected float minimumDistance = 5f;
+
+	/**
 	 * Constructs a slit of the given orientation centered on the scan box position
 	 * 
 	 * @param kp the KinectPoints object
@@ -56,11 +56,11 @@ public class Slit {
 
 		// Find the slit position in the KinectPoints object
 		int slitPos = -1;
-		float minDistance = MINIMUM_DISTANTE;
+		float minDistance = minimumDistance;
 
-		for (int y = 0; y < kp.height; y++) {
-			for (int x = 0; x < kp.width; x++) {
-				int index = x + y * kp.width;
+		for (int row = 0; row < kp.height; row++) {
+			for (int col = 0; col < kp.width; col++) {
+				int index = col + row * kp.width;
 				PVector point = kp.points[index];
 
 				if (kp.visibilityMask[index] && box.isInside(point)) {
@@ -68,7 +68,7 @@ public class Slit {
 							: Math.abs(point.y - this.center.y);
 
 					if (distance < minDistance) {
-						slitPos = this.vertical ? x : y;
+						slitPos = this.vertical ? col : row;
 						minDistance = distance;
 					}
 				}

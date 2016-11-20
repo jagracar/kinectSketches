@@ -12,11 +12,6 @@ import processing.core.PVector;
 public class KinectPoints {
 
 	/**
-	 * Maximum separation between two consecutive points to consider them connected
-	 */
-	protected float maxPointSeparationSq = 120 * 120;
-
-	/**
 	 * The arrays horizontal dimension
 	 */
 	protected int width;
@@ -45,6 +40,11 @@ public class KinectPoints {
 	 * Array containing the points visibility mask
 	 */
 	protected boolean[] visibilityMask;
+
+	/**
+	 * Maximum separation between two consecutive points to consider them connected
+	 */
+	protected float maxPointSeparationSq = 120 * 120;
 
 	/**
 	 * Constructs an empty KinectPoints object with the specified dimensions
@@ -100,42 +100,6 @@ public class KinectPoints {
 	}
 
 	/**
-	 * Reduces the Kinect points resolution by a given factor
-	 * 
-	 * @param reductionFactor the scale reduction factor
-	 */
-	public void reduceResolution(int reductionFactor) {
-		if (reductionFactor > 1) {
-			// Obtain the dimensions of the new reduced arrays
-			int widthNew = width / reductionFactor;
-			int heightNew = height / reductionFactor;
-			int nPointsNew = widthNew * heightNew;
-			PVector[] pointsNew = new PVector[nPointsNew];
-			int[] colorsNew = new int[nPointsNew];
-			boolean[] visibilityMaskNew = new boolean[nPointsNew];
-
-			// Populate the arrays
-			for (int row = 0; row < heightNew; row++) {
-				for (int col = 0; col < widthNew; col++) {
-					int indexNew = col + row * widthNew;
-					int index = col * reductionFactor + row * reductionFactor * width;
-					pointsNew[indexNew] = points[index];
-					colorsNew[indexNew] = colors[index];
-					visibilityMaskNew[indexNew] = visibilityMask[index];
-				}
-			}
-
-			// Update the arrays to the new resolution
-			width = widthNew;
-			height = heightNew;
-			nPoints = nPointsNew;
-			points = pointsNew;
-			colors = colorsNew;
-			visibilityMask = visibilityMaskNew;
-		}
-	}
-
-	/**
 	 * Updates the Kinect points with new Kinect data
 	 * 
 	 * @param pointsNew the new Kinect 3D points
@@ -157,7 +121,6 @@ public class KinectPoints {
 			colors = new int[nPoints];
 			visibilityMask = new boolean[nPoints];
 
-			// Initialize the points array
 			for (int i = 0; i < nPoints; i++) {
 				points[i] = new PVector();
 			}
@@ -177,6 +140,28 @@ public class KinectPoints {
 		}
 
 		rgbImgNew.updatePixels();
+	}
+
+	/**
+	 * Creates a copy of the Kinect points object
+	 * 
+	 * @return the Kinect points copy
+	 */
+	public KinectPoints copy() {
+		// Create an empty KinectPoints object
+		KinectPoints kp = new KinectPoints(width, height);
+
+		// Fill the arrays
+		for (int i = 0; i < nPoints; i++) {
+			kp.points[i].set(points[i]);
+			kp.colors[i] = colors[i];
+			kp.visibilityMask[i] = visibilityMask[i];
+		}
+
+		// Set the rest of the variables
+		kp.maxPointSeparationSq = maxPointSeparationSq;
+
+		return kp;
 	}
 
 	/**
@@ -247,6 +232,42 @@ public class KinectPoints {
 			return new PVector[] { new PVector(xMin, yMin, zMin), new PVector(xMax, yMax, zMax) };
 		} else {
 			return null;
+		}
+	}
+
+	/**
+	 * Reduces the Kinect points resolution by a given factor
+	 * 
+	 * @param reductionFactor the scale reduction factor
+	 */
+	public void reduceResolution(int reductionFactor) {
+		if (reductionFactor > 1) {
+			// Obtain the dimensions of the new reduced arrays
+			int widthNew = width / reductionFactor;
+			int heightNew = height / reductionFactor;
+			int nPointsNew = widthNew * heightNew;
+			PVector[] pointsNew = new PVector[nPointsNew];
+			int[] colorsNew = new int[nPointsNew];
+			boolean[] visibilityMaskNew = new boolean[nPointsNew];
+
+			// Populate the arrays
+			for (int row = 0; row < heightNew; row++) {
+				for (int col = 0; col < widthNew; col++) {
+					int indexNew = col + row * widthNew;
+					int index = col * reductionFactor + row * reductionFactor * width;
+					pointsNew[indexNew] = points[index];
+					colorsNew[indexNew] = colors[index];
+					visibilityMaskNew[indexNew] = visibilityMask[index];
+				}
+			}
+
+			// Update the arrays to the new resolution
+			width = widthNew;
+			height = heightNew;
+			nPoints = nPointsNew;
+			points = pointsNew;
+			colors = colorsNew;
+			visibilityMask = visibilityMaskNew;
 		}
 	}
 
@@ -484,10 +505,13 @@ public class KinectPoints {
 	 * Draws a line between two Kinect points if they are connected
 	 * 
 	 * @param p the parent Processing applet
-	 * @param point1 the first point
-	 * @param point2 the second point
+	 * @param index1 the first point index
+	 * @param index2 the second point index
 	 */
-	protected void drawLine(PApplet p, PVector point1, PVector point2) {
+	protected void drawLine(PApplet p, int index1, int index2) {
+		PVector point1 = points[index1];
+		PVector point2 = points[index2];
+
 		if (connected(point1, point2)) {
 			p.line(point1.x, point1.y, point1.z, point2.x, point2.y, point2.z);
 		}
@@ -508,19 +532,18 @@ public class KinectPoints {
 				int index = col + row * width;
 
 				if (visibilityMask[index]) {
-					PVector point = points[index];
 					p.stroke(colors[index]);
 
 					if (visibilityMask[index + 1]) {
-						drawLine(p, point, points[index + 1]);
+						drawLine(p, index, index + 1);
 					}
 
 					if (visibilityMask[index + width]) {
-						drawLine(p, point, points[index + width]);
+						drawLine(p, index, index + width);
 					}
 
 					if (visibilityMask[index + 1 + width]) {
-						drawLine(p, point, points[index + 1 + width]);
+						drawLine(p, index, index + 1 + width);
 					}
 				}
 			}
@@ -546,18 +569,16 @@ public class KinectPoints {
 				int index = col + row * width;
 
 				if (visibilityMask[index]) {
-					PVector point = points[index];
-
 					if (visibilityMask[index + 1]) {
-						drawLine(p, point, points[index + 1]);
+						drawLine(p, index, index + 1);
 					}
 
 					if (visibilityMask[index + width]) {
-						drawLine(p, point, points[index + width]);
+						drawLine(p, index, index + width);
 					}
 
 					if (visibilityMask[index + 1 + width]) {
-						drawLine(p, point, points[index + 1 + width]);
+						drawLine(p, index, index + 1 + width);
 					}
 				}
 			}
@@ -570,42 +591,29 @@ public class KinectPoints {
 	 * Draws a triangle between three Kinect points if they are connected
 	 * 
 	 * @param p the parent Processing applet
-	 * @param point1 the first point
-	 * @param point2 the second point
-	 * @param point3 the third point
+	 * @param index1 the first point index
+	 * @param index2 the second point index
+	 * @param index3 the third point index
+	 * @param useColors use the points colors if true
 	 */
-	protected void drawTriangle(PApplet p, PVector point1, PVector point2, PVector point3) {
-		if (connected(point1, point2) && connected(point1, point3) && connected(point2, point3)) {
-			p.beginShape(PApplet.TRIANGLES);
-			p.vertex(point1.x, point1.y, point1.z);
-			p.vertex(point2.x, point2.y, point2.z);
-			p.vertex(point3.x, point3.y, point3.z);
-			p.endShape();
-		}
-	}
+	protected void drawTriangle(PApplet p, int index1, int index2, int index3, boolean useColors) {
+		PVector point1 = points[index1];
+		PVector point2 = points[index2];
+		PVector point3 = points[index3];
 
-	/**
-	 * Draws a triangle between three Kinect points if they are connected
-	 * 
-	 * @param p the parent Processing applet
-	 * @param point1 the first point
-	 * @param point2 the second point
-	 * @param point3 the third point
-	 * @param color1 the first point color
-	 * @param color2 the second point color
-	 * @param color3 the third point color
-	 */
-	protected void drawTriangle(PApplet p, PVector point1, PVector point2, PVector point3, int color1, int color2,
-			int color3) {
 		if (connected(point1, point2) && connected(point1, point3) && connected(point2, point3)) {
-			p.beginShape(PApplet.TRIANGLES);
-			p.fill(color1);
-			p.vertex(point1.x, point1.y, point1.z);
-			p.fill(color2);
-			p.vertex(point2.x, point2.y, point2.z);
-			p.fill(color3);
-			p.vertex(point3.x, point3.y, point3.z);
-			p.endShape();
+			if (useColors) {
+				p.fill(colors[index1]);
+				p.vertex(point1.x, point1.y, point1.z);
+				p.fill(colors[index2]);
+				p.vertex(point2.x, point2.y, point2.z);
+				p.fill(colors[index3]);
+				p.vertex(point3.x, point3.y, point3.z);
+			} else {
+				p.vertex(point1.x, point1.y, point1.z);
+				p.vertex(point2.x, point2.y, point2.z);
+				p.vertex(point3.x, point3.y, point3.z);
+			}
 		}
 	}
 
@@ -617,6 +625,7 @@ public class KinectPoints {
 	public void drawAsTriangles(PApplet p) {
 		p.pushStyle();
 		p.noStroke();
+		p.beginShape(PApplet.TRIANGLES);
 
 		for (int row = 0; row < height - 1; row++) {
 			for (int col = 0; col < width - 1; col++) {
@@ -625,27 +634,24 @@ public class KinectPoints {
 				// First triangle
 				if (visibilityMask[index] && visibilityMask[index + width]) {
 					if (visibilityMask[index + 1]) {
-						drawTriangle(p, points[index], points[index + 1], points[index + width], colors[index],
-								colors[index + 1], colors[index + width]);
+						drawTriangle(p, index, index + 1, index + width, true);
 					} else if (visibilityMask[index + 1 + width]) {
-						drawTriangle(p, points[index], points[index + 1 + width], points[index + width], colors[index],
-								colors[index + 1 + width], colors[index + width]);
+						drawTriangle(p, index, index + 1 + width, index + width, true);
 					}
 				}
 
 				// Second triangle
 				if (visibilityMask[index + 1] && visibilityMask[index + 1 + width]) {
 					if (visibilityMask[index + width]) {
-						drawTriangle(p, points[index + 1], points[index + 1 + width], points[index + width],
-								colors[index + 1], colors[index + 1 + width], colors[index + width]);
+						drawTriangle(p, index + 1, index + 1 + width, index + width, true);
 					} else if (visibilityMask[index]) {
-						drawTriangle(p, points[index], points[index + 1], points[index + 1 + width], colors[index],
-								colors[index + 1], colors[index + 1 + width]);
+						drawTriangle(p, index, index + 1, index + 1 + width, true);
 					}
 				}
 			}
 		}
 
+		p.endShape();
 		p.popStyle();
 	}
 
@@ -659,39 +665,49 @@ public class KinectPoints {
 		p.pushStyle();
 		p.noStroke();
 		p.fill(trianglesColor);
+		p.beginShape(PApplet.TRIANGLES);
 
-		for (int y = 0; y < height - 1; y++) {
-			for (int x = 0; x < width - 1; x++) {
-				int index = x + y * width;
+		for (int row = 0; row < height - 1; row++) {
+			for (int col = 0; col < width - 1; col++) {
+				int index = col + row * width;
 
 				// First triangle
 				if (visibilityMask[index] && visibilityMask[index + width]) {
 					if (visibilityMask[index + 1]) {
-						drawTriangle(p, points[index], points[index + 1], points[index + width]);
+						drawTriangle(p, index, index + 1, index + width, false);
 					} else if (visibilityMask[index + 1 + width]) {
-						drawTriangle(p, points[index], points[index + 1 + width], points[index + width]);
+						drawTriangle(p, index, index + 1 + width, index + width, false);
 					}
 				}
 
 				// Second triangle
 				if (visibilityMask[index + 1] && visibilityMask[index + 1 + width]) {
 					if (visibilityMask[index + width]) {
-						drawTriangle(p, points[index + 1], points[index + 1 + width], points[index + width]);
+						drawTriangle(p, index + 1, index + 1 + width, index + width, false);
 					} else if (visibilityMask[index]) {
-						drawTriangle(p, points[index], points[index + 1], points[index + 1 + width]);
+						drawTriangle(p, index, index + 1, index + 1 + width, false);
 					}
 				}
 			}
 		}
 
+		p.endShape();
 		p.popStyle();
 	}
 
 	/**
+	 * Sets the value of the maximum separation between two consecutive points to consider them connected
 	 * 
-	 * @param newMaxPointSeparation
+	 * @param newMaxPointSeparation the new maximum point separation value
 	 */
 	public void setMaxPointSeparation(float newMaxPointSeparation) {
-		maxPointSeparationSq = PApplet.sq(newMaxPointSeparation);
+		maxPointSeparationSq = newMaxPointSeparation * newMaxPointSeparation;
+	}
+
+	/**
+	 * Returns the value of the maximum separation between two consecutive points to consider them connected
+	 */
+	public float getMaxPointSeparation() {
+		return PApplet.sqrt(maxPointSeparationSq);
 	}
 }

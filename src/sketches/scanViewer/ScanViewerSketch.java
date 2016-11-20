@@ -7,6 +7,8 @@ import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PVector;
 import processing.event.MouseEvent;
+import processing.opengl.PGraphicsOpenGL;
+import processing.opengl.PShader;
 
 /**
  * A Processing sketch that can be used to visualize and manipulate scans obtained with the Kinect sensor
@@ -16,14 +18,16 @@ import processing.event.MouseEvent;
 public class ScanViewerSketch extends PApplet {
 
 	// Sketch control variables
-	public String fileName = "scan.points";
+	public String fileName = "scan1.points";
 	public String scanDir = "data/scans/";
+	public String shadersDir = "data/shaders/";
 	public PVector limits[];
 
 	// Main sketch objects
 	public Scan scan;
 	public PImage backgroundImg;
 	public ControlPanel controlPanel;
+	PShader scanShader;
 
 	// Scene perspective variables
 	public float zoom = 1.0f;
@@ -42,14 +46,15 @@ public class ScanViewerSketch extends PApplet {
 	 */
 	public void setup() {
 		// Load the scan
-		scan = new Scan(100, 100);
-		scan.initFromFile(this, scanDir + fileName);
+		scan = new Scan(1, 1);
+		scan.updateFromFile(this, scanDir + fileName);
+		scan.setCenter(new PVector(0, 0, -100));
 		scan.reduceResolution(2);
-		scan.scale(5f);
+		scan.crop();
 		scan.gaussianSmooth(5);
-		scan.fillHoles(15);
 		scan.calculateNormals();
-		scan.calculateBackPoints();
+	    scan.calculateBackPoints();
+		scan.fillHoles(15);
 
 		// Calculate the sculpture limits to use them for the floor dimensions, adding some offset in the y direction
 		limits = scan.calculateLimits();
@@ -61,6 +66,9 @@ public class ScanViewerSketch extends PApplet {
 		// Initialize the control panel object
 		controlPanel = new ControlPanel(this);
 		controlPanel.setup();
+
+		scanShader = loadShader(shadersDir + "scanFrag.glsl", shadersDir + "scanVert.glsl");
+		hint(DISABLE_OPTIMIZED_STROKE);
 	}
 
 	/**
@@ -81,21 +89,20 @@ public class ScanViewerSketch extends PApplet {
 		}
 
 		// Define the scene lights if we are not using real colors
+		setSceneLights();
 
 		// Position the scene
-		pushMatrix();
 		translate(width / 2f, height / 2f, 0);
 		rotateX(rotX);
 		rotateY(rotY);
 		scale(zoom);
 
-		scan.centerAtScreenPosition(this, mouseX, mouseY, 10 * zoom);
+		scanShader.set("modelviewInvMatrix", ((PGraphicsOpenGL) g).modelviewInv);
+		scanShader.set("effect", 0);
+		scanShader.set("time", millis());
+		// shader(scanShader);
 
 		scan.drawAsTriangles(this);
-
-		setSceneLights();
-		scan.drawBackSide(this, color(255));
-		popMatrix();
 
 		// Disable the z-buffer to paint the control panel on top of the screen
 		hint(DISABLE_DEPTH_TEST);
@@ -109,7 +116,7 @@ public class ScanViewerSketch extends PApplet {
 	 */
 	public void setSceneLights() {
 		ambientLight(100, 100, 100);
-		directionalLight(255 - 100, 255 - 100, 255 - 100, 0, 0.1f, -0.9f);
+		directionalLight(255 - 100, 255 - 100, 255 - 100, 0.0f, 0.1f, -0.9f);
 		lightSpecular(200, 200, 200);
 	}
 
