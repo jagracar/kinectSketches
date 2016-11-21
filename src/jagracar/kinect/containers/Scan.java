@@ -5,7 +5,9 @@ import java.util.ArrayList;
 import jagracar.kinect.util.ScanBox;
 import processing.core.PApplet;
 import processing.core.PImage;
+import processing.core.PShape;
 import processing.core.PVector;
+import processing.opengl.PShader;
 
 /**
  * Subclass of the KinectPoints class. Implements some additional functions to manipulate and save Kinect output data
@@ -25,31 +27,59 @@ public class Scan extends KinectPoints {
 	protected PVector[] normals;
 
 	/**
-	 * Array containing the scan back side points coordinates
+	 * The scan geometric shape with the point coordinates, colors and normals
 	 */
-	protected PVector[] backPoints;
+	protected PShape shape;
+
+	/**
+	 * The scan shape back side color
+	 */
+	protected int backColor;
+
+	/**
+	 * The shader that will be used to paint the scan geometric shape by default
+	 */
+	protected PShader defaultShader;
+
+	/**
+	 * Constructs an empty Scan object
+	 * 
+	 * @param p the parent Processing applet
+	 */
+	public Scan(PApplet p) {
+		this(p, 0, 0);
+	}
 
 	/**
 	 * Constructs an empty Scan object with the specified dimensions
 	 * 
+	 * @param p the parent Processing applet
 	 * @param width the arrays horizontal dimension
 	 * @param height the arrays vertical dimension
 	 */
-	public Scan(int width, int height) {
-		super(width, height);
+	public Scan(PApplet p, int width, int height) {
+		super(p, width, height);
 		this.center = new PVector();
 		this.normals = null;
-		this.backPoints = null;
+		this.shape = null;
+		this.backColor = 0xffffffff;
+		this.defaultShader = p.loadShader("src/jagracar/kinect/shaders/defaultFrag.glsl",
+				"src/jagracar/kinect/shaders/defaultVert.glsl");
+
+		// Set the shader backColor uniform
+		this.defaultShader.set("backColor", this.p.red(this.backColor) / 255f, this.p.green(this.backColor) / 255f,
+				this.p.blue(this.backColor) / 255f, this.p.alpha(this.backColor) / 255f);
 	}
 
 	/**
 	 * Constructs a Scan object using the Kinect points inside the scan box
 	 * 
+	 * @param p the parent Processing applet
 	 * @param kp the KinectPoints object
 	 * @param box the scan box from which the scan points will be selected
 	 */
 	public Scan(KinectPoints kp, ScanBox box) {
-		this(kp.width, kp.height);
+		this(kp.p, kp.width, kp.height);
 
 		// Fill the main scan arrays
 		for (int i = 0; i < this.nPoints; i++) {
@@ -141,49 +171,6 @@ public class Scan extends KinectPoints {
 	}
 
 	/**
-	 * Calculates the scan back side points
-	 */
-	public void calculateBackPoints() {
-		// Create the back side points array if necessary
-		if (backPoints == null || backPoints.length != nPoints) {
-			backPoints = new PVector[nPoints];
-
-			for (int i = 0; i < nPoints; i++) {
-				backPoints[i] = new PVector();
-			}
-		}
-
-		// Calculate the normals if they were not calculated before or the array doesn't have the correct dimensions
-		if (normals == null || normals.length != nPoints) {
-			calculateNormals();
-		}
-
-		// Calculate the back side points
-		PVector perp = new PVector();
-
-		for (int row = 0; row < height; row++) {
-			for (int col = 0; col < width; col++) {
-				int index = col + row * width;
-				PVector backPoint = backPoints[index];
-				backPoint.set(points[index]);
-
-				if (visibilityMask[index]) {
-					float offset = 0.01f;
-
-					if (col - 1 >= 0 && col + 1 < width && row - 1 >= 0 && row + 1 < height && visibilityMask[index - 1]
-							&& visibilityMask[index + 1] && visibilityMask[index - width]
-							&& visibilityMask[index + width]) {
-						offset *= 10f;
-					}
-
-					perp.set(normals[index]).mult(offset);
-					backPoint.sub(perp);
-				}
-			}
-		}
-	}
-
-	/**
 	 * Updates the scan normals
 	 */
 	public void updateNormals() {
@@ -193,11 +180,162 @@ public class Scan extends KinectPoints {
 	}
 
 	/**
-	 * Update the scan back side points
+	 * Calculates the scan geometric shape
 	 */
-	public void updateBackPoints() {
-		if (backPoints != null) {
-			calculateBackPoints();
+	public void calculateShape() {
+		calculateShape(true);
+	}
+
+	/**
+	 * Calculates the scan geometric shape
+	 * 
+	 * @param addNormals add the points normals to the shape if true
+	 */
+	public void calculateShape(boolean addNormals) {
+		shape = p.createShape();
+		shape.beginShape(PApplet.TRIANGLES);
+		shape.noStroke();
+		addTriangles(true, addNormals);
+		shape.endShape();
+
+		// Update the illuminateFrontFace uniform
+		defaultShader.set("illuminateFrontFace", 0);
+	}
+
+	/**
+	 * Calculates the scan geometric shape
+	 * 
+	 * @param addNormals add the points normals to the shape if true
+	 * @param shapeColor the color to use for the whole shape
+	 */
+	public void calculateShape(boolean addNormals, int shapeColor) {
+		shape = p.createShape();
+		shape.beginShape(PApplet.TRIANGLES);
+		shape.noStroke();
+		shape.fill(shapeColor);
+		addTriangles(false, addNormals);
+		shape.endShape();
+
+		// Update the illuminateFrontFace uniform
+		defaultShader.set("illuminateFrontFace", 1);
+	}
+
+	/**
+	 * Adds all the valid scan triangles to the scan shape
+	 * 
+	 * @param addColors add the points colors to the triangles if true
+	 * @param addNormals add the points normals to the triangles if true
+	 */
+	protected void addTriangles(boolean addColors, boolean addNormals) {
+		for (int row = 0; row < height - 1; row++) {
+			for (int col = 0; col < width - 1; col++) {
+				int index = col + row * width;
+
+				// Add the first triangle
+				if (visibilityMask[index] && visibilityMask[index + width]) {
+					if (visibilityMask[index + 1]) {
+						addTriangle(index, index + 1, index + width, addColors, addNormals);
+					} else if (visibilityMask[index + 1 + width]) {
+						addTriangle(index, index + 1 + width, index + width, addColors, addNormals);
+					}
+				}
+
+				// Add the second triangle
+				if (visibilityMask[index + 1] && visibilityMask[index + 1 + width]) {
+					if (visibilityMask[index + width]) {
+						addTriangle(index + 1, index + 1 + width, index + width, addColors, addNormals);
+					} else if (visibilityMask[index]) {
+						addTriangle(index, index + 1, index + 1 + width, addColors, addNormals);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Adds a triangle to the scan shape if the three Kinect points are connected
+	 * 
+	 * @param index1 the first point index
+	 * @param index2 the second point index
+	 * @param index3 the third point index
+	 * @param addColors add the points colors to the triangle if true
+	 * @param addNormals add the points normals to the triangle if true
+	 */
+	protected void addTriangle(int index1, int index2, int index3, boolean addColors, boolean addNormals) {
+		PVector point1 = points[index1];
+		PVector point2 = points[index2];
+		PVector point3 = points[index3];
+
+		if (connected(point1, point2) && connected(point1, point3) && connected(point2, point3)) {
+			if (normals != null && addNormals) {
+				PVector normal1 = normals[index1];
+				PVector normal2 = normals[index2];
+				PVector normal3 = normals[index3];
+
+				if (addColors) {
+					shape.fill(colors[index1]);
+					shape.normal(normal1.x, normal1.y, normal1.z);
+					shape.vertex(point1.x, point1.y, point1.z);
+					shape.fill(colors[index2]);
+					shape.normal(normal2.x, normal2.y, normal2.z);
+					shape.vertex(point2.x, point2.y, point2.z);
+					shape.fill(colors[index3]);
+					shape.normal(normal3.x, normal3.y, normal3.z);
+					shape.vertex(point3.x, point3.y, point3.z);
+				} else {
+					shape.normal(normal1.x, normal1.y, normal1.z);
+					shape.vertex(point1.x, point1.y, point1.z);
+					shape.normal(normal2.x, normal2.y, normal2.z);
+					shape.vertex(point2.x, point2.y, point2.z);
+					shape.normal(normal3.x, normal3.y, normal3.z);
+					shape.vertex(point3.x, point3.y, point3.z);
+				}
+			} else if (addColors) {
+				shape.fill(colors[index1]);
+				shape.vertex(point1.x, point1.y, point1.z);
+				shape.fill(colors[index2]);
+				shape.vertex(point2.x, point2.y, point2.z);
+				shape.fill(colors[index3]);
+				shape.vertex(point3.x, point3.y, point3.z);
+			} else {
+				shape.vertex(point1.x, point1.y, point1.z);
+				shape.vertex(point2.x, point2.y, point2.z);
+				shape.vertex(point3.x, point3.y, point3.z);
+			}
+		}
+	}
+
+	/**
+	 * Updates the scan shape
+	 * 
+	 * @param p the parent Processing applet
+	 */
+	public void updateShape() {
+		if (shape != null) {
+			calculateShape();
+		}
+	}
+
+	/**
+	 * Updates the scan shape
+	 * 
+	 * @param addNormals add the points normals to the shape if true
+	 */
+	public void updateShape(boolean addNormals) {
+		if (shape != null) {
+			calculateShape(addNormals);
+		}
+	}
+
+	/**
+	 * Updates the scan shape
+	 * 
+	 * @param addNormals add the points normals to the shape if true
+	 * @param shapeColor the color to use for the whole shape
+	 */
+	public void updateShape(boolean addNormals, int shapeColor) {
+		if (shape != null) {
+			calculateShape(addNormals, shapeColor);
 		}
 	}
 
@@ -212,9 +350,8 @@ public class Scan extends KinectPoints {
 	public void update(PVector[] pointsNew, PImage rgbImgNew, int[] depthMapNew, int reductionFactor) {
 		super.update(pointsNew, rgbImgNew, depthMapNew, reductionFactor);
 
-		// Update the normals and backPoints arrays
+		// Update the normals array
 		updateNormals();
-		updateBackPoints();
 	}
 
 	/**
@@ -244,15 +381,6 @@ public class Scan extends KinectPoints {
 					normals[i] = new PVector();
 				}
 			}
-
-			// Initialize the backPoints array if necessary
-			if (backPoints != null) {
-				backPoints = new PVector[nPoints];
-
-				for (int i = 0; i < nPoints; i++) {
-					backPoints[i] = new PVector();
-				}
-			}
 		}
 
 		// Update the main scan arrays
@@ -271,15 +399,6 @@ public class Scan extends KinectPoints {
 			updateNormals();
 		}
 
-		// Update the back points array if necessary
-		if (backPoints != null && scan.backPoints != null) {
-			for (int i = 0; i < nPoints; i++) {
-				backPoints[i].set(scan.backPoints[i]);
-			}
-		} else {
-			updateBackPoints();
-		}
-
 		// Set the rest of the scan variables
 		center.set(scan.center);
 		maxPointSeparationSq = scan.maxPointSeparationSq;
@@ -288,10 +407,9 @@ public class Scan extends KinectPoints {
 	/**
 	 * Updates the scan points with those contained in a file
 	 * 
-	 * @param p the parent Processing applet
 	 * @param fileName the file name
 	 */
-	public void updateFromFile(PApplet p, String fileName) {
+	public void updateFromFile(String fileName) {
 		// Load the file lines containing the scan data
 		String[] fileLines = p.loadStrings(fileName);
 
@@ -345,18 +463,16 @@ public class Scan extends KinectPoints {
 			center.div(counter);
 		}
 
-		// Update the normals and backPoints arrays
+		// Update the normals array
 		updateNormals();
-		updateBackPoints();
 	}
 
 	/**
 	 * Save the scan points and colors on a file
 	 * 
-	 * @param p the parent Processing applet
 	 * @param fileName the file name
 	 */
-	public void savePoints(PApplet p, String fileName) {
+	public void savePoints(String fileName) {
 		// Create the array that will contain the file lines
 		String[] lines = new String[nPoints + 1];
 
@@ -390,7 +506,7 @@ public class Scan extends KinectPoints {
 	 */
 	public Scan copy() {
 		// Create an empty scan
-		Scan scan = new Scan(width, height);
+		Scan scan = new Scan(p, width, height);
 
 		// Fill the main scan arrays
 		for (int i = 0; i < nPoints; i++) {
@@ -408,18 +524,10 @@ public class Scan extends KinectPoints {
 			}
 		}
 
-		// Fill the backPoints array if necessary
-		if (backPoints != null) {
-			scan.backPoints = new PVector[nPoints];
-
-			for (int i = 0; i < nPoints; i++) {
-				scan.backPoints[i] = backPoints[i].copy();
-			}
-		}
-
 		// Set the rest of the scan variables
 		scan.center.set(center);
 		scan.maxPointSeparationSq = maxPointSeparationSq;
+		scan.setBackSideColor(backColor);
 
 		return scan;
 	}
@@ -432,9 +540,8 @@ public class Scan extends KinectPoints {
 	public void constrainPoints(PVector[] corners) {
 		super.constrainPoints(corners);
 
-		// Update the normals and backPoints arrays
+		// Update the normals array
 		updateNormals();
-		updateBackPoints();
 	}
 
 	/**
@@ -503,9 +610,8 @@ public class Scan extends KinectPoints {
 			colors = colorsNew;
 			visibilityMask = visibilityMaskNew;
 
-			// Update the normals and backPoints arrays
+			// Update the normals array
 			updateNormals();
-			updateBackPoints();
 		}
 	}
 
@@ -522,9 +628,6 @@ public class Scan extends KinectPoints {
 
 		// Translate the scan center
 		center.add(translationVector);
-
-		// Update the backPoints arrays
-		updateBackPoints();
 	}
 
 	/**
@@ -543,9 +646,8 @@ public class Scan extends KinectPoints {
 			point.add(center);
 		}
 
-		// Update the normals and backPoints arrays
+		// Update the normals array
 		updateNormals();
-		updateBackPoints();
 	}
 
 	/**
@@ -563,9 +665,6 @@ public class Scan extends KinectPoints {
 
 		// Update the maximum scan separation between points
 		setMaxPointSeparation(scaleFactor * getMaxPointSeparation());
-
-		// Update the backPoints arrays
-		updateBackPoints();
 	}
 
 	/**
@@ -639,9 +738,8 @@ public class Scan extends KinectPoints {
 			colors = colorsNew;
 			visibilityMask = visibilityMaskNew;
 
-			// Update the normals and backPoints arrays
+			// Update the normals array
 			updateNormals();
-			updateBackPoints();
 		}
 	}
 
@@ -686,9 +784,8 @@ public class Scan extends KinectPoints {
 			colors = colorsNew;
 			visibilityMask = visibilityMaskNew;
 
-			// Update the normals and backPoints arrays
+			// Update the normals array
 			updateNormals();
-			updateBackPoints();
 		}
 	}
 
@@ -737,9 +834,8 @@ public class Scan extends KinectPoints {
 			colors = colorsNew;
 			visibilityMask = visibilityMaskNew;
 
-			// Update the normals and backPoints arrays
+			// Update the normals array
 			updateNormals();
-			updateBackPoints();
 		}
 	}
 
@@ -834,10 +930,9 @@ public class Scan extends KinectPoints {
 			}
 		}
 
-		// Update the normals and backPoints arrays if necessary
+		// Update the normals array if necessary
 		if (holesHaveBeenFilled) {
 			updateNormals();
-			updateBackPoints();
 		}
 	}
 
@@ -913,23 +1008,21 @@ public class Scan extends KinectPoints {
 			// Update the points array
 			points = smoothedPoints;
 
-			// Update the normals and backPoints arrays
+			// Update the normals array
 			updateNormals();
-			updateBackPoints();
 		}
 	}
 
 	/**
 	 * Returns the array index of the scan point that is closest to a given screen position
 	 * 
-	 * @param p the parent Processing applet
 	 * @param xScreen the screen x position
 	 * @param yScreen the screen y position
 	 * @param searchRadius the radius to search for close points
 	 * @return the array index of the point that is closest to the given screen position. Returns -1 if no point is
 	 *         found
 	 */
-	protected int getPointIndexUnderScreenPosition(PApplet p, float xScreen, float yScreen, float searchRadius) {
+	protected int getPointIndexUnderScreenPosition(float xScreen, float yScreen, float searchRadius) {
 		// Get all the scan points that are close to the given screen position
 		ArrayList<Integer> closePointsIndex = new ArrayList<Integer>();
 		ArrayList<Float> closePointsZValue = new ArrayList<Float>();
@@ -957,23 +1050,10 @@ public class Scan extends KinectPoints {
 							maxZValue = zValue;
 						}
 
-						// Check if the scan has the back points array
-						if (backPoints != null) {
-							// Only select those points that are in front of their back points
-							PVector backPoint = backPoints[index];
-
-							if (zValue > p.modelZ(backPoint.x, backPoint.y, backPoint.z)) {
-								// Save the point information
-								closePointsIndex.add(index);
-								closePointsZValue.add(zValue);
-								closePointsDistanceSq.add(distanceSq);
-							}
-						} else {
-							// Save the point information
-							closePointsIndex.add(index);
-							closePointsZValue.add(zValue);
-							closePointsDistanceSq.add(distanceSq);
-						}
+						// Save the point information
+						closePointsIndex.add(index);
+						closePointsZValue.add(zValue);
+						closePointsDistanceSq.add(distanceSq);
 					}
 				}
 			}
@@ -1001,22 +1081,18 @@ public class Scan extends KinectPoints {
 	 * This method should be called between the Processing pushMatrix and popMatrix methods that affect how the scan is
 	 * drawn on the screen
 	 * 
-	 * @param p the parent Processing applet
 	 * @param xScreen the screen x position
 	 * @param yScreen the screen y position
 	 * @param searchRadius the radius to search for close points
 	 */
-	public void disolveUnderScreenPosition(PApplet p, float xScreen, float yScreen, float searchRadius) {
+	public void disolveUnderScreenPosition(float xScreen, float yScreen, float searchRadius) {
 		// Get the index of the point that is closest to the screen position
-		int index = getPointIndexUnderScreenPosition(p, xScreen, yScreen, searchRadius);
+		int index = getPointIndexUnderScreenPosition(xScreen, yScreen, searchRadius);
 
 		// Check that there is a close point
 		if (index >= 0) {
 			// Set the point as non visible
 			visibilityMask[index] = false;
-
-			// Update the backPoints array
-			updateBackPoints();
 		}
 	}
 
@@ -1026,14 +1102,13 @@ public class Scan extends KinectPoints {
 	 * This method should be called between the Processing pushMatrix and popMatrix methods that affect how the scan is
 	 * drawn on the screen
 	 * 
-	 * @param p the parent Processing applet
 	 * @param xScreen the screen x position
 	 * @param yScreen the screen y position
 	 * @param searchRadius the radius to search for close points
 	 */
-	public void centerAtScreenPosition(PApplet p, float xScreen, float yScreen, float searchRadius) {
+	public void centerAtScreenPosition(float xScreen, float yScreen, float searchRadius) {
 		// Get the index of the scan point that is closest to the screen position
-		int index = getPointIndexUnderScreenPosition(p, xScreen, yScreen, searchRadius);
+		int index = getPointIndexUnderScreenPosition(xScreen, yScreen, searchRadius);
 
 		// Check that there is a close point
 		if (index >= 0) {
@@ -1054,15 +1129,14 @@ public class Scan extends KinectPoints {
 	/**
 	 * Draws a triangle between three Kinect points if they are connected
 	 * 
-	 * @param p the parent Processing applet
 	 * @param index1 the first point index
 	 * @param index2 the second point index
 	 * @param index3 the third point index
 	 * @param useColors use the points colors if true
 	 */
-	protected void drawTriangle(PApplet p, int index1, int index2, int index3, boolean useColors) {
+	protected void drawTriangle(int index1, int index2, int index3, boolean useColors) {
 		if (normals == null) {
-			super.drawTriangle(p, index1, index2, index3, useColors);
+			super.drawTriangle(index1, index2, index3, useColors);
 		} else {
 			PVector point1 = points[index1];
 			PVector point2 = points[index2];
@@ -1096,73 +1170,31 @@ public class Scan extends KinectPoints {
 	}
 
 	/**
-	 * Draws a triangle between three Kinect points if they are connected
-	 * 
-	 * @param p the parent Processing applet
-	 * @param index1 the first point index
-	 * @param index2 the second point index
-	 * @param index3 the third point index
-	 * @param useColors use the points colors if true
+	 * Draws the scan shape on the screen
 	 */
-	protected void drawBackTriangle(PApplet p, int index1, int index2, int index3) {
-		PVector backPoint1 = backPoints[index1];
-		PVector backPoint2 = backPoints[index2];
-		PVector backPoint3 = backPoints[index3];
-
-		if (connected(backPoint1, backPoint2) && connected(backPoint1, backPoint3)
-				&& connected(backPoint2, backPoint3)) {
-			PVector normal1 = normals[index1];
-			PVector normal2 = normals[index2];
-			PVector normal3 = normals[index3];
-
-			p.normal(normal1.x, normal1.y, normal1.z);
-			p.vertex(backPoint1.x, backPoint1.y, backPoint1.z);
-			p.normal(normal2.x, normal2.y, normal2.z);
-			p.vertex(backPoint2.x, backPoint2.y, backPoint2.z);
-			p.normal(normal3.x, normal3.y, normal3.z);
-			p.vertex(backPoint3.x, backPoint3.y, backPoint3.z);
-		}
+	public void drawShape() {
+		p.shader(defaultShader);
+		p.shape(shape);
 	}
 
 	/**
-	 * Draws the scan back side as triangles on the screen with a uniform color
+	 * Draws the scan shape on the screen
 	 * 
-	 * @param p the parent Processing applet
-	 * @param trianglesColor the triangles color
+	 * @param shader the shader that should be used to paint the scan
 	 */
-	public void drawBackSide(PApplet p, int trianglesColor) {
-		if (backPoints != null) {
-			p.pushStyle();
-			p.noStroke();
-			p.fill(trianglesColor);
-			p.beginShape(PApplet.TRIANGLES);
+	public void drawShape(PShader shader) {
+		p.shader(shader);
+		p.shape(shape);
+	}
 
-			for (int row = 0; row < height - 1; row++) {
-				for (int col = 0; col < width - 1; col++) {
-					int index = col + row * width;
-
-					// First triangle
-					if (visibilityMask[index] && visibilityMask[index + width]) {
-						if (visibilityMask[index + 1]) {
-							drawBackTriangle(p, index, index + 1, index + width);
-						} else if (visibilityMask[index + 1 + width]) {
-							drawBackTriangle(p, index, index + 1 + width, index + width);
-						}
-					}
-
-					// Second triangle
-					if (visibilityMask[index + 1] && visibilityMask[index + 1 + width]) {
-						if (visibilityMask[index + width]) {
-							drawBackTriangle(p, index + 1, index + 1 + width, index + width);
-						} else if (visibilityMask[index]) {
-							drawBackTriangle(p, index, index + 1, index + 1 + width);
-						}
-					}
-				}
-			}
-
-			p.endShape();
-			p.popStyle();
-		}
+	/**
+	 * Sets the scan shape back side color
+	 * 
+	 * @param newBackColor the new scan shape back side color
+	 */
+	public void setBackSideColor(int newBackColor) {
+		backColor = newBackColor;
+		defaultShader.set("backColor", p.red(backColor) / 255f, p.green(backColor) / 255f, p.blue(backColor) / 255f,
+				p.alpha(backColor) / 255f);
 	}
 }

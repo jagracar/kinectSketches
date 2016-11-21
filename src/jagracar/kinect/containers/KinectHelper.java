@@ -30,7 +30,7 @@ public class KinectHelper {
 	 */
 	public static Scan averageScans(ArrayList<Scan> scanList) {
 		// Create an empty average scan with the same dimensions as the scans in the list
-		Scan averageScan = new Scan(scanList.get(0).width, scanList.get(0).height);
+		Scan averageScan = new Scan(scanList.get(0).p, scanList.get(0).width, scanList.get(0).height);
 
 		// Loop over the scans in the list and fill the average scan arrays
 		int[] counter = new int[averageScan.nPoints];
@@ -70,18 +70,19 @@ public class KinectHelper {
 	/**
 	 * Creates a scan from the combination of several slits, assuming that all have the same orientation and dimensions
 	 * 
+	 * @param p the parent Processing applet
 	 * @param slitList the list of slits to combine
 	 * @param rotate if true the slits will rotated around their center
 	 * @param commonCenter if true all the slits will be moved to have the same center
 	 * @return the scan formed from the combination of the slits
 	 */
-	public static Scan combineSlits(ArrayList<Slit> slitList, boolean rotate, boolean commonCenter) {
+	public static Scan combineSlits(PApplet p, ArrayList<Slit> slitList, boolean rotate, boolean commonCenter) {
 		// Create an empty scan with the same center as the last slit added to the list
 		Slit slit = slitList.get(slitList.size() - 1);
 		boolean verticalSlits = slit.vertical;
 		int width = verticalSlits ? slitList.size() : slit.points.length;
 		int height = verticalSlits ? slit.points.length : slitList.size();
-		Scan scan = new Scan(width, height);
+		Scan scan = new Scan(p, width, height);
 		scan.center.set(slit.center);
 
 		// Loop over the slits in the list and fill the scan arrays

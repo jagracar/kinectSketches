@@ -12,6 +12,11 @@ import processing.core.PVector;
 public class KinectPoints {
 
 	/**
+	 * The parent Processing applet
+	 */
+	protected PApplet p;
+
+	/**
 	 * The arrays horizontal dimension
 	 */
 	protected int width;
@@ -49,10 +54,12 @@ public class KinectPoints {
 	/**
 	 * Constructs an empty KinectPoints object with the specified dimensions
 	 * 
+	 * @param p the parent Processing applet
 	 * @param width the arrays horizontal dimension
 	 * @param height the arrays vertical dimension
 	 */
-	public KinectPoints(int width, int height) {
+	public KinectPoints(PApplet p, int width, int height) {
+		this.p = p;
 		this.width = width;
 		this.height = height;
 		this.nPoints = this.width * this.height;
@@ -69,13 +76,15 @@ public class KinectPoints {
 	/**
 	 * Constructs a KinectPoints object from the provided Kinect output data
 	 * 
+	 * @param p the parent Processing applet
 	 * @param points the Kinect 3D points
 	 * @param rgbImg the Kinect color image
 	 * @param depthMap the Kinect depth map
 	 * @param reductionFactor the scale reduction factor
 	 */
-	public KinectPoints(PVector[] points, PImage rgbImg, int[] depthMap, int reductionFactor) {
+	public KinectPoints(PApplet p, PVector[] points, PImage rgbImg, int[] depthMap, int reductionFactor) {
 		reductionFactor = Math.max(1, reductionFactor);
+		this.p = p;
 		this.width = rgbImg.width / reductionFactor;
 		this.height = rgbImg.height / reductionFactor;
 		this.nPoints = this.width * this.height;
@@ -149,7 +158,7 @@ public class KinectPoints {
 	 */
 	public KinectPoints copy() {
 		// Create an empty KinectPoints object
-		KinectPoints kp = new KinectPoints(width, height);
+		KinectPoints kp = new KinectPoints(p, width, height);
 
 		// Fill the arrays
 		for (int i = 0; i < nPoints; i++) {
@@ -289,10 +298,9 @@ public class KinectPoints {
 	/**
 	 * Draws the Kinect points as pixels on the screen
 	 * 
-	 * @param p the parent Processing applet
 	 * @param pixelSize the pixel size
 	 */
-	public void drawAsPixels(PApplet p, int pixelSize) {
+	public void drawAsPixels(int pixelSize) {
 		p.pushStyle();
 		p.strokeWeight(pixelSize);
 
@@ -310,11 +318,10 @@ public class KinectPoints {
 	/**
 	 * Draws the Kinect points as pixels on the screen with a uniform color
 	 * 
-	 * @param p the parent Processing applet
 	 * @param pixelSize the pixel size
 	 * @param pixelColor the pixel color
 	 */
-	public void drawAsPixels(PApplet p, int pixelSize, int pixelColor) {
+	public void drawAsPixels(int pixelSize, int pixelColor) {
 		p.pushStyle();
 		p.strokeWeight(pixelSize);
 		p.stroke(pixelColor);
@@ -332,10 +339,9 @@ public class KinectPoints {
 	/**
 	 * Draws the Kinect points as horizontal bands on the screen
 	 * 
-	 * @param p the parent Processing applet
 	 * @param verticalGap the positive vertical gap between bands
 	 */
-	public void drawAsBands(PApplet p, int verticalGap) {
+	public void drawAsBands(int verticalGap) {
 		p.pushStyle();
 		p.noStroke();
 		boolean bandStarted = false;
@@ -420,11 +426,10 @@ public class KinectPoints {
 	/**
 	 * Draws the Kinect points as horizontal bands on the screen with a uniform color
 	 * 
-	 * @param p the parent Processing applet
 	 * @param verticalGap the positive vertical gap between bands
 	 * @param bandsColor the bands color
 	 */
-	public void drawAsBands(PApplet p, int verticalGap, int bandsColor) {
+	public void drawAsBands(int verticalGap, int bandsColor) {
 		p.pushStyle();
 		p.noStroke();
 		p.fill(bandsColor);
@@ -504,11 +509,10 @@ public class KinectPoints {
 	/**
 	 * Draws a line between two Kinect points if they are connected
 	 * 
-	 * @param p the parent Processing applet
 	 * @param index1 the first point index
 	 * @param index2 the second point index
 	 */
-	protected void drawLine(PApplet p, int index1, int index2) {
+	protected void drawLine(int index1, int index2) {
 		PVector point1 = points[index1];
 		PVector point2 = points[index2];
 
@@ -520,10 +524,9 @@ public class KinectPoints {
 	/**
 	 * Draws the Kinect points as lines on the screen
 	 * 
-	 * @param p the parent Processing applet
 	 * @param lineWeight the line weight
 	 */
-	public void drawAsLines(PApplet p, float lineWeight) {
+	public void drawAsLines(float lineWeight) {
 		p.pushStyle();
 		p.strokeWeight(lineWeight);
 
@@ -535,15 +538,15 @@ public class KinectPoints {
 					p.stroke(colors[index]);
 
 					if (visibilityMask[index + 1]) {
-						drawLine(p, index, index + 1);
+						drawLine(index, index + 1);
 					}
 
 					if (visibilityMask[index + width]) {
-						drawLine(p, index, index + width);
+						drawLine(index, index + width);
 					}
 
 					if (visibilityMask[index + 1 + width]) {
-						drawLine(p, index, index + 1 + width);
+						drawLine(index, index + 1 + width);
 					}
 				}
 			}
@@ -555,11 +558,10 @@ public class KinectPoints {
 	/**
 	 * Draws the Kinect points as lines on the screen with a uniform color
 	 * 
-	 * @param p the parent Processing applet
 	 * @param lineWeight the line weight
 	 * @param lineColor the line color
 	 */
-	public void drawAsLines(PApplet p, float lineWeight, int lineColor) {
+	public void drawAsLines(float lineWeight, int lineColor) {
 		p.pushStyle();
 		p.strokeWeight(lineWeight);
 		p.stroke(lineColor);
@@ -570,15 +572,15 @@ public class KinectPoints {
 
 				if (visibilityMask[index]) {
 					if (visibilityMask[index + 1]) {
-						drawLine(p, index, index + 1);
+						drawLine(index, index + 1);
 					}
 
 					if (visibilityMask[index + width]) {
-						drawLine(p, index, index + width);
+						drawLine(index, index + width);
 					}
 
 					if (visibilityMask[index + 1 + width]) {
-						drawLine(p, index, index + 1 + width);
+						drawLine(index, index + 1 + width);
 					}
 				}
 			}
@@ -590,13 +592,12 @@ public class KinectPoints {
 	/**
 	 * Draws a triangle between three Kinect points if they are connected
 	 * 
-	 * @param p the parent Processing applet
 	 * @param index1 the first point index
 	 * @param index2 the second point index
 	 * @param index3 the third point index
 	 * @param useColors use the points colors if true
 	 */
-	protected void drawTriangle(PApplet p, int index1, int index2, int index3, boolean useColors) {
+	protected void drawTriangle(int index1, int index2, int index3, boolean useColors) {
 		PVector point1 = points[index1];
 		PVector point2 = points[index2];
 		PVector point3 = points[index3];
@@ -619,10 +620,8 @@ public class KinectPoints {
 
 	/**
 	 * Draws the Kinect points as triangles on the screen
-	 * 
-	 * @param p the parent Processing applet
 	 */
-	public void drawAsTriangles(PApplet p) {
+	public void drawAsTriangles() {
 		p.pushStyle();
 		p.noStroke();
 		p.beginShape(PApplet.TRIANGLES);
@@ -634,18 +633,18 @@ public class KinectPoints {
 				// First triangle
 				if (visibilityMask[index] && visibilityMask[index + width]) {
 					if (visibilityMask[index + 1]) {
-						drawTriangle(p, index, index + 1, index + width, true);
+						drawTriangle(index, index + 1, index + width, true);
 					} else if (visibilityMask[index + 1 + width]) {
-						drawTriangle(p, index, index + 1 + width, index + width, true);
+						drawTriangle(index, index + 1 + width, index + width, true);
 					}
 				}
 
 				// Second triangle
 				if (visibilityMask[index + 1] && visibilityMask[index + 1 + width]) {
 					if (visibilityMask[index + width]) {
-						drawTriangle(p, index + 1, index + 1 + width, index + width, true);
+						drawTriangle(index + 1, index + 1 + width, index + width, true);
 					} else if (visibilityMask[index]) {
-						drawTriangle(p, index, index + 1, index + 1 + width, true);
+						drawTriangle(index, index + 1, index + 1 + width, true);
 					}
 				}
 			}
@@ -658,10 +657,9 @@ public class KinectPoints {
 	/**
 	 * Draws the Kinect points as triangles on the screen with a uniform color
 	 * 
-	 * @param p the parent Processing applet
 	 * @param trianglesColor the triangles color
 	 */
-	public void drawAsTriangles(PApplet p, int trianglesColor) {
+	public void drawAsTriangles(int trianglesColor) {
 		p.pushStyle();
 		p.noStroke();
 		p.fill(trianglesColor);
@@ -674,18 +672,18 @@ public class KinectPoints {
 				// First triangle
 				if (visibilityMask[index] && visibilityMask[index + width]) {
 					if (visibilityMask[index + 1]) {
-						drawTriangle(p, index, index + 1, index + width, false);
+						drawTriangle(index, index + 1, index + width, false);
 					} else if (visibilityMask[index + 1 + width]) {
-						drawTriangle(p, index, index + 1 + width, index + width, false);
+						drawTriangle(index, index + 1 + width, index + width, false);
 					}
 				}
 
 				// Second triangle
 				if (visibilityMask[index + 1] && visibilityMask[index + 1 + width]) {
 					if (visibilityMask[index + width]) {
-						drawTriangle(p, index + 1, index + 1 + width, index + width, false);
+						drawTriangle(index + 1, index + 1 + width, index + width, false);
 					} else if (visibilityMask[index]) {
-						drawTriangle(p, index, index + 1, index + 1 + width, false);
+						drawTriangle(index, index + 1, index + 1 + width, false);
 					}
 				}
 			}

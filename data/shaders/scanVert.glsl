@@ -1,21 +1,36 @@
-// Uniforms
+//
+// Based on the default Processing light vertex shader:
+// https://github.com/processing/processing/blob/master/core/src/processing/opengl/shaders/LightVert.glsl
+//
+
+// Matrix uniforms
 uniform mat4 modelviewMatrix;
 uniform mat4 transformMatrix;
 uniform mat3 normalMatrix;
-uniform mat4 modelviewInvMatrix;
-uniform vec4 lightPosition[8];
-uniform int effect;
-uniform int time;
 
-// Attributes
+// Scan specific uniforms
+uniform int time;
+uniform int effect;
+
+// Vertex attributes
 attribute vec4 position;
 attribute vec4 color;
 attribute vec3 normal;
+
+// Light attributes
+attribute vec4 ambient;
+attribute vec4 specular;
+attribute vec4 emissive;
+attribute float shininess;
 
 // Varyings
 varying vec3 vWcPosition;
 varying vec4 vColor;
 varying vec3 vEcNormal;
+varying vec4 vAmbient;
+varying vec4 vSpecular;
+varying vec4 vEmissive;
+varying float vShininess;
 
 //
 // The pulsation effect 
@@ -25,31 +40,26 @@ vec3 pulsationEffect(vec3 normalVector) {
 }
 
 //
-// Normalizes the vector coordinates to have values between -0.5 and 0.5 
-//
-vec3 normalizeCoordinates(vec3 vector) {
-	return vec3(vector)/500.0;
-}
-
-//
 // Main program
 //
 void main() {
 	// Get the position in world coordinates
-	vec4 wcPosition = modelviewMatrix * position * modelviewInvMatrix;
-  
+	vec4 wcPosition = position;
+
   	// Apply some of the effects
-	vec4 newWcPosition = wcPosition;
-	
 	if(effect == 1) {
-		newWcPosition.xyz += pulsationEffect(normal);
+		wcPosition.xyz += pulsationEffect(normal);
 	}
 
 	// Save the varyings
-	vWcPosition = newWcPosition.xyz;
+	vWcPosition = wcPosition.xyz;
 	vColor = color;
 	vEcNormal = normalize(normalMatrix * normal);
-  
-	// Vertex in clip coordinates
-	gl_Position = transformMatrix * newWcPosition;
+	vAmbient = ambient;
+	vSpecular = specular;
+	vEmissive = emissive;
+	vShininess = shininess;
+	
+	// Vertex shader output
+	gl_Position = transformMatrix * wcPosition;
 }

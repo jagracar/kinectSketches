@@ -124,7 +124,8 @@ public class KinectScannerSketch extends PApplet {
 
 		// Initialize the KinectPoints object
 		context.update();
-		kPoints = new KinectPoints(context.depthMapRealWorld(), context.rgbImage(), context.depthMap(), resolution);
+		kPoints = new KinectPoints(this, context.depthMapRealWorld(), context.rgbImage(), context.depthMap(),
+				resolution);
 
 		// Calculate the scene limits if necessary
 		if (limits == null) {
@@ -241,27 +242,27 @@ public class KinectScannerSketch extends PApplet {
 			// Draw the kinect points as bands
 			if (drawAsBands) {
 				if (monochrome) {
-					kPoints.drawAsBands(this, 1, monochromeColor);
+					kPoints.drawAsBands(1, monochromeColor);
 				} else {
-					kPoints.drawAsBands(this, 1);
+					kPoints.drawAsBands(1);
 				}
 			}
 
 			// Draw the kinect points as pixels
 			if (drawAsPixels) {
 				if (monochrome) {
-					kPoints.drawAsPixels(this, 3, monochromeColor);
+					kPoints.drawAsPixels(3, monochromeColor);
 				} else {
-					kPoints.drawAsPixels(this, 3);
+					kPoints.drawAsPixels(3);
 				}
 			}
 
 			// Draw the kinect points as lines
 			if (drawAsLines) {
 				if (monochrome) {
-					kPoints.drawAsLines(this, 3, monochromeColor);
+					kPoints.drawAsLines(3, monochromeColor);
 				} else {
-					kPoints.drawAsLines(this, 3);
+					kPoints.drawAsLines(3);
 				}
 			}
 		}
@@ -293,9 +294,9 @@ public class KinectScannerSketch extends PApplet {
 		// Draw the last scan taken
 		if (drawScan && !takeScan && scan != null) {
 			if (monochrome) {
-				scan.drawAsTriangles(this, monochromeColor);
+				scan.drawAsTriangles(monochromeColor);
 			} else {
-				scan.drawAsTriangles(this);
+				scan.drawAsTriangles();
 			}
 		}
 
@@ -304,7 +305,7 @@ public class KinectScannerSketch extends PApplet {
 			if (scan != null) {
 				scan.crop();
 				String scanFileName = outputDir + fileName + "-" + scanCounter + ".points";
-				scan.savePoints(this, scanFileName);
+				scan.savePoints(scanFileName);
 				println("Save scan: 3D points saved in " + scanFileName);
 			}
 
@@ -314,16 +315,16 @@ public class KinectScannerSketch extends PApplet {
 		// Check if a slit scan should be taken
 		if (takeSlitScan) {
 			slits.add(new Slit(kPoints, box, verticalSlitScan));
-			slitScan = KinectHelper.combineSlits(slits, rotateSlitScan, centerSlitScan);
+			slitScan = KinectHelper.combineSlits(this, slits, rotateSlitScan, centerSlitScan);
 			println("Take slit scan: Running (" + slits.size() + " slits)");
 		}
 
 		// Draw the last slit scan taken
 		if (drawSlitScan && slitScan != null) {
 			if (monochrome) {
-				slitScan.drawAsTriangles(this, monochromeColor);
+				slitScan.drawAsTriangles(monochromeColor);
 			} else {
-				slitScan.drawAsTriangles(this);
+				slitScan.drawAsTriangles();
 			}
 		}
 
@@ -333,7 +334,7 @@ public class KinectScannerSketch extends PApplet {
 				slitScanCounter++;
 				slitScan.crop();
 				String slitScanFileName = outputDir + fileName + "-slit" + slitScanCounter + ".points";
-				slitScan.savePoints(this, slitScanFileName);
+				slitScan.savePoints(slitScanFileName);
 				println("Save slit scan: 3D points saved in " + slitScanFileName);
 			}
 

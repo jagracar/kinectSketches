@@ -7,7 +7,6 @@ import processing.core.PApplet;
 import processing.core.PImage;
 import processing.core.PVector;
 import processing.event.MouseEvent;
-import processing.opengl.PGraphicsOpenGL;
 import processing.opengl.PShader;
 
 /**
@@ -30,7 +29,7 @@ public class ScanViewerSketch extends PApplet {
 	PShader scanShader;
 
 	// Scene perspective variables
-	public float zoom = 1.0f;
+	public float zoom = 1.5f;
 	public float rotX = PI;
 	public float rotY = 0;
 
@@ -46,15 +45,15 @@ public class ScanViewerSketch extends PApplet {
 	 */
 	public void setup() {
 		// Load the scan
-		scan = new Scan(1, 1);
-		scan.updateFromFile(this, scanDir + fileName);
+		scan = new Scan(this);
+		scan.updateFromFile(scanDir + fileName);
 		scan.setCenter(new PVector(0, 0, -100));
 		scan.reduceResolution(2);
 		scan.crop();
 		scan.gaussianSmooth(5);
 		scan.calculateNormals();
-	    scan.calculateBackPoints();
 		scan.fillHoles(15);
+		scan.calculateShape(false, color(255f, 50f, 50f));
 
 		// Calculate the sculpture limits to use them for the floor dimensions, adding some offset in the y direction
 		limits = scan.calculateLimits();
@@ -68,7 +67,13 @@ public class ScanViewerSketch extends PApplet {
 		controlPanel.setup();
 
 		scanShader = loadShader(shadersDir + "scanFrag.glsl", shadersDir + "scanVert.glsl");
-		hint(DISABLE_OPTIMIZED_STROKE);
+		scanShader.set("effect", 4);
+		scanShader.set("invertEffect", false);
+		scanShader.set("backColor", 1.0f, 1.0f, 1.0f, 1.0f);
+		scanShader.set("effectColor", 0.3f, 0.3f, 0.3f, 1.0f);
+		scanShader.set("fillWithColor", true);
+		scanShader.set("illuminateFrontFace", true);
+		//hint(DISABLE_OPTIMIZED_STROKE);
 	}
 
 	/**
@@ -97,12 +102,11 @@ public class ScanViewerSketch extends PApplet {
 		rotateY(rotY);
 		scale(zoom);
 
-		scanShader.set("modelviewInvMatrix", ((PGraphicsOpenGL) g).modelviewInv);
-		scanShader.set("effect", 0);
 		scanShader.set("time", millis());
 		// shader(scanShader);
 
-		scan.drawAsTriangles(this);
+		// scan.drawAsTriangles();
+		scan.drawShape(scanShader);
 
 		// Disable the z-buffer to paint the control panel on top of the screen
 		hint(DISABLE_DEPTH_TEST);

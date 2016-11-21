@@ -690,13 +690,13 @@ public class ControlPanel extends PApplet {
 			p.rotateSlitScan = ((Toggle) controller).getBooleanValue();
 
 			if (!p.takeSlitScan && p.slits.size() > 0) {
-				p.slitScan = KinectHelper.combineSlits(p.slits, p.rotateSlitScan, p.centerSlitScan);
+				p.slitScan = KinectHelper.combineSlits(p, p.slits, p.rotateSlitScan, p.centerSlitScan);
 			}
 		} else if (controllerName.equals("centerSlitScan")) {
 			p.centerSlitScan = ((Toggle) controller).getBooleanValue();
 
 			if (!p.takeSlitScan && p.slits.size() > 0) {
-				p.slitScan = KinectHelper.combineSlits(p.slits, p.rotateSlitScan, p.centerSlitScan);
+				p.slitScan = KinectHelper.combineSlits(p, p.slits, p.rotateSlitScan, p.centerSlitScan);
 			}
 		} else if (controllerName.equals("slitScanBang")) {
 			p.takeSlitScan = !p.takeSlitScan;

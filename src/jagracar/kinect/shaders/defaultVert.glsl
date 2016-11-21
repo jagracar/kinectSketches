@@ -1,12 +1,7 @@
 //
 // Based on the default Processing light vertex shader:
-// https://github.com/processing/processing/blob/master/core/src/processing/opengl/shaders/LightFrag.glsl
+// https://github.com/processing/processing/blob/master/core/src/processing/opengl/shaders/LightVert.glsl
 //
-
-#ifdef GL_ES
-precision mediump float;
-precision mediump int;
-#endif
 
 // Matrix uniforms
 uniform mat4 modelviewMatrix;
@@ -26,20 +21,21 @@ uniform vec2 lightSpot[8];
 // Scan specific uniforms
 uniform int illuminateFrontFace;
 uniform vec4 backColor;
-uniform int time;
-uniform int effect;
-uniform int invertEffect;
-uniform int fillWithColor;
-uniform vec4 effectColor;
+
+// Vertex attributes
+attribute vec4 position;
+attribute vec4 color;
+attribute vec3 normal;
+
+// Light attributes
+attribute vec4 ambient;
+attribute vec4 specular;
+attribute vec4 emissive;
+attribute float shininess;
 
 // Varyings
-varying vec3 vWcPosition;
-varying vec4 vColor;
-varying vec3 vEcNormal;
-varying vec4 vAmbient;
-varying vec4 vSpecular;
-varying vec4 vEmissive;
-varying float vShininess;
+varying vec4 vertColor;
+varying vec4 backVertColor;
 
 // Constants
 const float zero_float = 0.0;
@@ -84,46 +80,14 @@ float blinnPhongFactor(vec3 lightDir, vec3 vertPos, vec3 vecNormal, float shine)
 }
 
 //
-// The hole effect 
-//
-bool holeEffect() {
-	return vWcPosition.z < -30.0 - 40.0 * (1.0 + cos(0.002 * time));
-}
-
-//
-// The circle effect 
-//
-bool circleEffect() {
-	return length(vWcPosition.xy) < 80.0 * (1.0 + cos(0.001 * time));
-}
-
-//
-// The vertical cut effect 
-//
-bool verticalCutEffect() {
-	return abs(vWcPosition.x) < 95.0 * (1.0 - 1.2 * cos(0.001 * time));
-}
-
-//
 // Main program
 //
 void main() {
-	// Apply some of the effects
-	bool masked = false;
-	
-	if(effect == 2) {
-		masked = holeEffect() != (invertEffect == 1);
-	} else if(effect == 3) {
-		masked = circleEffect() != (invertEffect == 1);
-	} else if(effect == 4) {
-		masked = verticalCutEffect() != (invertEffect == 1);
-	}
-
 	// Vertex in eye coordinates
-	vec3 ecVertex = vec3(modelviewMatrix * vec4(vWcPosition, 1.0));
+	vec3 ecVertex = vec3(modelviewMatrix * position);
 	
 	// Normal vector in eye coordinates
-	vec3 ecNormal = vEcNormal;
+	vec3 ecNormal = normalize(normalMatrix * normal);
 	vec3 ecNormalInv = ecNormal * -one_float;
   
 	// Light calculations
@@ -165,49 +129,27 @@ void main() {
 		}
 		
 		if (any(greaterThan(lightSpecular[i], zero_vec3))) {
-			totalFrontSpecular += lightSpecular[i] * falloff * spotf * blinnPhongFactor(lightDir, ecVertex, ecNormal, vShininess);
-			totalBackSpecular += lightSpecular[i] * falloff * spotf * blinnPhongFactor(lightDir, ecVertex, ecNormalInv, vShininess);
+			totalFrontSpecular += lightSpecular[i] * falloff * spotf * blinnPhongFactor(lightDir, ecVertex, ecNormal, shininess);
+			totalBackSpecular += lightSpecular[i] * falloff * spotf * blinnPhongFactor(lightDir, ecVertex, ecNormalInv, shininess);
 		}     
 	}    
 	
 	// Calculating final color as result of all lights (plus emissive term).
 	// Transparency is determined exclusively by the diffuse component.
-	vec4 vertColor;
-	
 	if (illuminateFrontFace == 1) {
-		vertColor = vec4(totalAmbient, 0) * vAmbient + 
-                    vec4(totalFrontDiffuse, 1) * vColor + 
-                    vec4(totalFrontSpecular, 0) * vSpecular + 
-                    vec4(vEmissive.rgb, 0);
+		vertColor = vec4(totalAmbient, 0) * ambient + 
+                    vec4(totalFrontDiffuse, 1) * color + 
+                    vec4(totalFrontSpecular, 0) * specular + 
+                    vec4(emissive.rgb, 0);
 	} else {
-		vertColor = vColor;
+		vertColor = color;
 	}
   
-	vec4 backVertColor = vec4(totalAmbient, 0) * backColor + 
+	backVertColor = vec4(totalAmbient, 0) * backColor + 
                     vec4(totalBackDiffuse, 1) *  backColor + 
                     vec4(totalBackSpecular, 0) * backColor + 
-                    vec4(vEmissive.rgb, 0);
-
-
-	if (masked) {
-		if(fillWithColor == 1) {
-			if (gl_FrontFacing) {
-				gl_FragColor = vec4(totalAmbient, 0) * effectColor + 
-                               vec4(totalFrontDiffuse, 1) * effectColor + 
-                               vec4(totalFrontSpecular, 0) * effectColor + 
-                               vec4(vEmissive.rgb, 0); 
-			} else {
-				gl_FragColor = vec4(totalAmbient, 0) * effectColor + 
-                               vec4(totalBackDiffuse, 1) * effectColor + 
-                               vec4(totalBackSpecular, 0) * effectColor + 
-                               vec4(vEmissive.rgb, 0); 
-			}
-		} else {
-			discard;
-		}
-	} else if (gl_FrontFacing) {
-		gl_FragColor = vertColor;  
-	} else {
-		gl_FragColor = backVertColor;  
-	}
+                    vec4(emissive.rgb, 0);
+	
+	// Vertex shader output
+	gl_Position = transformMatrix * position;
 }
