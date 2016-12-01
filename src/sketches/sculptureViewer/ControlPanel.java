@@ -68,9 +68,22 @@ public class ControlPanel {
 		// Create the ControlP5 object
 		cp5 = new ControlP5(p);
 
+		// Change the default colors
+		cp5.setColorForeground(0xff888888);
+		cp5.setColorBackground(0xffcccccc);
+		cp5.setColorActive(0xffffff88);
+		cp5.setColorCaptionLabel(0xffeeeeee);
+		cp5.setColorValueLabel(0xff111111);
+
+		// Do not broadcast events yet
 		cp5.setBroadcast(false);
 
-		Slider slider = cp5.addSlider("sides");
+		// Add this slider to fix a weird bug
+		Slider slider = cp5.addSlider("bugFix");
+		slider.setPosition(marginX, -100);
+
+		// Add the sides slider
+		slider = cp5.addSlider("sides");
 		slider.setPosition(marginX, marginY);
 		slider.setSize(sliderWidth, buttonSize);
 		slider.setValue(p.sculpture.getSectionSides());
@@ -80,6 +93,7 @@ public class ControlPanel {
 		slider.setCaptionLabel("Sides");
 		slider.getCaptionLabel().setPaddingX(padding);
 
+		// Add the radius slider
 		slider = cp5.addSlider("radius");
 		slider.setPosition(marginX, marginY + deltaY);
 		slider.setSize(sliderWidth, buttonSize);
@@ -88,6 +102,7 @@ public class ControlPanel {
 		slider.setCaptionLabel("Radius");
 		slider.getCaptionLabel().setPaddingX(padding);
 
+		// Add the subdivisions slider
 		slider = cp5.addSlider("subdivisions");
 		slider.setPosition(marginX, marginY + 2 * deltaY);
 		slider.setSize(sliderWidth, buttonSize);
@@ -98,6 +113,7 @@ public class ControlPanel {
 		slider.setCaptionLabel("Subdivisions");
 		slider.getCaptionLabel().setPaddingX(padding);
 
+		// Start broadcasting events
 		cp5.setBroadcast(true);
 	}
 
@@ -111,11 +127,20 @@ public class ControlPanel {
 		String controllerName = controller.getName();
 
 		if (controllerName.equals("sides")) {
-			p.sculpture.setSectionSides(Math.round(controller.getValue()));
+			p.sculpture.setSectionSides((int) controller.getValue());
 		} else if (controllerName.equals("radius")) {
 			p.sculpture.setSectionRadius(controller.getValue());
 		} else if (controllerName.equals("subdivisions")) {
-			p.sculpture.setSubdivisions(Math.round(controller.getValue()));
+			p.sculpture.setSubdivisions((int) controller.getValue());
 		}
+	}
+
+	/**
+	 * Checks if the mouse is over the control panel
+	 * 
+	 * @return true if the mouse is over the control panel
+	 */
+	public boolean isMouseOver() {
+		return cp5.isMouseOver();
 	}
 }

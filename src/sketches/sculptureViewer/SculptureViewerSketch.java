@@ -19,13 +19,13 @@ public class SculptureViewerSketch extends PApplet {
 	// Sketch control variables
 	public String fileName = "sculpture.sculpt";
 	public String sculptureDir = "data/sculptures/";
-	public PVector limits[];
 
 	// Main sketch objects
 	public Sculpture sculpture;
 	public PImage backgroundImg;
 	public Floor floor;
 	public ControlPanel controlPanel;
+	public PVector limits[];
 
 	// Scene perspective variables
 	public float zoom = 0.35f;
@@ -44,11 +44,14 @@ public class SculptureViewerSketch extends PApplet {
 	 */
 	public void setup() {
 		// Load the sculpture
-		sculpture = new Sculpture(60f, 30, 10);
-		sculpture.initFromFile(this, sculptureDir + fileName);
+		sculpture = new Sculpture(this, 60f, 30, 10);
+		sculpture.initFromFile(sculptureDir + fileName);
 
 		// Center the sculpture on the origin
 		sculpture.center(new PVector(0, 0, 0));
+
+		// Set the sculpture color
+		sculpture.setColor(color(230, 90, 90));
 
 		// Calculate the sculpture limits to use them for the floor dimensions, adding some offset in the y direction
 		limits = sculpture.calculateLimits();
@@ -82,7 +85,7 @@ public class SculptureViewerSketch extends PApplet {
 			background(220);
 		}
 
-		// Define the scene lights if we are not using real colors
+		// Define the scene lights
 		setSceneLights();
 
 		// Position the scene
@@ -95,7 +98,7 @@ public class SculptureViewerSketch extends PApplet {
 		floor.draw(this, limits);
 
 		// Draw the sculpture
-		sculpture.draw(this, color(230, 90, 90));
+		sculpture.draw();
 
 		// Disable the z-buffer to paint the control panel on top of the screen
 		hint(DISABLE_DEPTH_TEST);
@@ -117,8 +120,8 @@ public class SculptureViewerSketch extends PApplet {
 	 * Controls the scene angle view when the mouse is dragged
 	 */
 	public void mouseDragged() {
-		// Avoid the region covered by the control panel
-		if ((mouseX > 240) || (mouseY > 100)) {
+		// Check that we are not on top of the control panel
+		if (!controlPanel.isMouseOver()) {
 			noCursor();
 			rotX -= map(mouseY - pmouseY, -height, height, -TWO_PI, TWO_PI);
 			rotY -= map(mouseX - pmouseX, -width, width, -TWO_PI, TWO_PI);
@@ -140,12 +143,15 @@ public class SculptureViewerSketch extends PApplet {
 	 * @param event the mouse event
 	 */
 	public void mouseWheel(MouseEvent event) {
-		float wheelCount = event.getCount();
+		// Check that we are not on top of the control panel
+		if (!controlPanel.isMouseOver()) {
+			float wheelCount = event.getCount();
 
-		if (wheelCount > 0) {
-			zoom *= 1.0 + 0.05 * wheelCount;
-		} else {
-			zoom /= 1.0 - 0.05 * wheelCount;
+			if (wheelCount > 0) {
+				zoom *= 1.0 + 0.05 * wheelCount;
+			} else {
+				zoom /= 1.0 - 0.05 * wheelCount;
+			}
 		}
 	}
 

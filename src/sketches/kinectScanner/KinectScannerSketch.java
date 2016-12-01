@@ -136,7 +136,8 @@ public class KinectScannerSketch extends PApplet {
 		box = new ScanBox(PVector.add(limits[0], limits[1]).mult(0.5f), 400);
 
 		// Initialize the sculpture
-		sculpture = new Sculpture(60f, 30, 10);
+		sculpture = new Sculpture(this, 60f, 30, 10);
+		sculpture.setColor(color(230, 100, 100));
 
 		// Initialize the bier object for the Oktoberfest game
 		PImage bierImg = loadImage(imgDir + "mass.png");
@@ -349,7 +350,7 @@ public class KinectScannerSketch extends PApplet {
 			}
 
 			// Draw the sculpture
-			sculpture.draw(this, color(230, 100, 100));
+			sculpture.draw();
 
 			// Draw a small sphere to signal the hand position
 			if (handPosition != null) {
@@ -368,7 +369,7 @@ public class KinectScannerSketch extends PApplet {
 		if (saveSculpture) {
 			sculptureCounter++;
 			String sculptureFileName = outputDir + fileName + "-" + sculptureCounter + ".sculpt";
-			sculpture.savePoints(this, sculptureFileName);
+			sculpture.savePoints(sculptureFileName);
 			saveSculpture = false;
 			println("Save sculpture: control points saved in " + sculptureFileName);
 		}

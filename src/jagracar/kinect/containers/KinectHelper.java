@@ -30,7 +30,8 @@ public class KinectHelper {
 	 */
 	public static Scan averageScans(ArrayList<Scan> scanList) {
 		// Create an empty average scan with the same dimensions as the scans in the list
-		Scan averageScan = new Scan(scanList.get(0).p, scanList.get(0).width, scanList.get(0).height);
+		Scan firstScan = scanList.get(0);
+		Scan averageScan = new Scan(firstScan.p, firstScan.width, firstScan.height);
 
 		// Loop over the scans in the list and fill the average scan arrays
 		int[] counter = new int[averageScan.nPoints];
@@ -41,26 +42,26 @@ public class KinectHelper {
 		for (Scan scan : scanList) {
 			averageScan.center.add(scan.center);
 
-			for (int i = 0; i < averageScan.nPoints; i++) {
-				if (scan.visibilityMask[i]) {
-					averageScan.points[i].add(scan.points[i]);
-					int color = scan.colors[i];
-					red[i] += (color >> 16) & 0xff;
-					green[i] += (color >> 8) & 0xff;
-					blue[i] += color & 0xff;
-					counter[i]++;
+			for (int index = 0; index < averageScan.nPoints; index++) {
+				if (scan.visibilityMask[index]) {
+					averageScan.points[index].add(scan.points[index]);
+					int color = scan.colors[index];
+					red[index] += (color >> 16) & 0xff;
+					green[index] += (color >> 8) & 0xff;
+					blue[index] += color & 0xff;
+					counter[index]++;
 				}
 			}
 		}
 
 		averageScan.center.div(scanList.size());
 
-		for (int i = 0; i < averageScan.nPoints; i++) {
-			if (counter[i] > 0) {
-				averageScan.points[i].div(counter[i]);
-				averageScan.colors[i] = ((red[i] / counter[i]) << 16) | ((green[i] / counter[i]) << 8)
-						| (blue[i] / counter[i]) | 0xff000000;
-				averageScan.visibilityMask[i] = true;
+		for (int index = 0; index < averageScan.nPoints; index++) {
+			if (counter[index] > 0) {
+				averageScan.points[index].div(counter[index]);
+				averageScan.colors[index] = ((red[index] / counter[index]) << 16)
+						| ((green[index] / counter[index]) << 8) | (blue[index] / counter[index]) | 0xff000000;
+				averageScan.visibilityMask[index] = true;
 			}
 		}
 
@@ -147,9 +148,9 @@ public class KinectHelper {
 		PImage img = p.createImage(kp.width, kp.height, PApplet.RGB);
 		img.loadPixels();
 
-		for (int i = 0; i < kp.nPoints; i++) {
-			if (kp.visibilityMask[i]) {
-				img.pixels[i] = kp.colors[i];
+		for (int index = 0; index < kp.nPoints; index++) {
+			if (kp.visibilityMask[index]) {
+				img.pixels[index] = kp.colors[index];
 			}
 		}
 

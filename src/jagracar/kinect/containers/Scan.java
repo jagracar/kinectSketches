@@ -27,28 +27,24 @@ public class Scan extends KinectPoints {
 	protected PVector[] normals;
 
 	/**
-	 * The scan geometric shape with the point coordinates, colors and normals
+	 * The scan mesh with the points coordinates, normals and colors
 	 */
-	protected PShape shape;
+	protected PShape mesh;
 
 	/**
-	 * The scan shape back side color
+	 * The scan points mesh with the points coordinates, normals and colors
 	 */
-	protected int backColor;
+	protected PShape pointsMesh;
 
 	/**
-	 * The shader that will be used to paint the scan geometric shape by default
+	 * The scan lines mesh with the points coordinates, normals and colors
 	 */
-	protected PShader defaultShader;
+	protected PShape linesMesh;
 
 	/**
-	 * Constructs an empty Scan object
-	 * 
-	 * @param p the parent Processing applet
+	 * The shader that will be used to paint the scan mesh by default
 	 */
-	public Scan(PApplet p) {
-		this(p, 0, 0);
-	}
+	protected PShader meshShader;
 
 	/**
 	 * Constructs an empty Scan object with the specified dimensions
@@ -61,14 +57,20 @@ public class Scan extends KinectPoints {
 		super(p, width, height);
 		this.center = new PVector();
 		this.normals = null;
-		this.shape = null;
-		this.backColor = 0xffffffff;
-		this.defaultShader = p.loadShader("src/jagracar/kinect/shaders/defaultFrag.glsl",
-				"src/jagracar/kinect/shaders/defaultVert.glsl");
+		this.mesh = null;
+		this.pointsMesh = null;
+		this.linesMesh = null;
+		this.meshShader = this.p.loadShader("src/jagracar/kinect/shaders/meshFrag.glsl",
+				"src/jagracar/kinect/shaders/meshVert.glsl");
+	}
 
-		// Set the shader backColor uniform
-		this.defaultShader.set("backColor", this.p.red(this.backColor) / 255f, this.p.green(this.backColor) / 255f,
-				this.p.blue(this.backColor) / 255f, this.p.alpha(this.backColor) / 255f);
+	/**
+	 * Constructs an empty Scan object with zero dimensions
+	 * 
+	 * @param p the parent Processing applet
+	 */
+	public Scan(PApplet p) {
+		this(p, 0, 0);
 	}
 
 	/**
@@ -82,11 +84,11 @@ public class Scan extends KinectPoints {
 		this(kp.p, kp.width, kp.height);
 
 		// Fill the main scan arrays
-		for (int i = 0; i < this.nPoints; i++) {
-			PVector point = kp.points[i];
-			this.points[i].set(point);
-			this.colors[i] = kp.colors[i];
-			this.visibilityMask[i] = kp.visibilityMask[i] && box.isInside(point);
+		for (int index = 0; index < this.nPoints; index++) {
+			PVector point = kp.points[index];
+			this.points[index].set(point);
+			this.colors[index] = kp.colors[index];
+			this.visibilityMask[index] = kp.visibilityMask[index] && box.isInside(point);
 		}
 
 		// Set the scan center to the scan box center
@@ -101,8 +103,8 @@ public class Scan extends KinectPoints {
 		if (normals == null || normals.length != nPoints) {
 			normals = new PVector[nPoints];
 
-			for (int i = 0; i < nPoints; i++) {
-				normals[i] = new PVector();
+			for (int index = 0; index < nPoints; index++) {
+				normals[index] = new PVector();
 			}
 		}
 
@@ -180,94 +182,107 @@ public class Scan extends KinectPoints {
 	}
 
 	/**
-	 * Calculates the scan geometric shape
-	 */
-	public void calculateShape() {
-		calculateShape(true);
-	}
-
-	/**
-	 * Calculates the scan geometric shape
+	 * Calculates the scan mesh
 	 * 
-	 * @param addNormals add the points normals to the shape if true
+	 * @param addNormals add the points normals to the scan mesh if true
 	 */
-	public void calculateShape(boolean addNormals) {
-		shape = p.createShape();
-		shape.beginShape(PApplet.TRIANGLES);
-		shape.noStroke();
-		addTriangles(true, addNormals);
-		shape.endShape();
+	public void calculateMesh(boolean addNormals) {
+		// Create the scan mesh
+		mesh = p.createShape();
+		mesh.beginShape(PApplet.TRIANGLES);
+		mesh.noStroke();
 
-		// Update the illuminateFrontFace uniform
-		defaultShader.set("illuminateFrontFace", 0);
-	}
-
-	/**
-	 * Calculates the scan geometric shape
-	 * 
-	 * @param addNormals add the points normals to the shape if true
-	 * @param shapeColor the color to use for the whole shape
-	 */
-	public void calculateShape(boolean addNormals, int shapeColor) {
-		shape = p.createShape();
-		shape.beginShape(PApplet.TRIANGLES);
-		shape.noStroke();
-		shape.fill(shapeColor);
-		addTriangles(false, addNormals);
-		shape.endShape();
-
-		// Update the illuminateFrontFace uniform
-		defaultShader.set("illuminateFrontFace", 1);
-	}
-
-	/**
-	 * Adds all the valid scan triangles to the scan shape
-	 * 
-	 * @param addColors add the points colors to the triangles if true
-	 * @param addNormals add the points normals to the triangles if true
-	 */
-	protected void addTriangles(boolean addColors, boolean addNormals) {
 		for (int row = 0; row < height - 1; row++) {
 			for (int col = 0; col < width - 1; col++) {
 				int index = col + row * width;
 
-				// Add the first triangle
+				// Add the first triangle to the mesh
 				if (visibilityMask[index] && visibilityMask[index + width]) {
 					if (visibilityMask[index + 1]) {
-						addTriangle(index, index + 1, index + width, addColors, addNormals);
+						addTriangle(mesh, index, index + 1, index + width, true, addNormals);
 					} else if (visibilityMask[index + 1 + width]) {
-						addTriangle(index, index + 1 + width, index + width, addColors, addNormals);
+						addTriangle(mesh, index, index + 1 + width, index + width, true, addNormals);
 					}
 				}
 
-				// Add the second triangle
+				// Add the second triangle to the mesh
 				if (visibilityMask[index + 1] && visibilityMask[index + 1 + width]) {
 					if (visibilityMask[index + width]) {
-						addTriangle(index + 1, index + 1 + width, index + width, addColors, addNormals);
+						addTriangle(mesh, index + 1, index + 1 + width, index + width, true, addNormals);
 					} else if (visibilityMask[index]) {
-						addTriangle(index, index + 1, index + 1 + width, addColors, addNormals);
+						addTriangle(mesh, index, index + 1, index + 1 + width, true, addNormals);
 					}
 				}
 			}
 		}
+
+		mesh.endShape();
+
+		// Update the default mesh shader
+		meshShader.set("illuminateFrontFace", 0);
 	}
 
 	/**
-	 * Adds a triangle to the scan shape if the three Kinect points are connected
+	 * Calculates the scan mesh
 	 * 
+	 * @param addNormals add the points normals to the scan mesh if true
+	 * @param frontColor the color to use for the scan mesh front side
+	 */
+	public void calculateMesh(boolean addNormals, int frontColor) {
+		// Create the scan mesh
+		mesh = p.createShape();
+		mesh.beginShape(PApplet.TRIANGLES);
+		mesh.noStroke();
+		mesh.fill(frontColor);
+
+		for (int row = 0; row < height - 1; row++) {
+			for (int col = 0; col < width - 1; col++) {
+				int index = col + row * width;
+
+				// Add the first triangle to the mesh
+				if (visibilityMask[index] && visibilityMask[index + width]) {
+					if (visibilityMask[index + 1]) {
+						addTriangle(mesh, index, index + 1, index + width, false, addNormals);
+					} else if (visibilityMask[index + 1 + width]) {
+						addTriangle(mesh, index, index + 1 + width, index + width, false, addNormals);
+					}
+				}
+
+				// Add the second triangle to the mesh
+				if (visibilityMask[index + 1] && visibilityMask[index + 1 + width]) {
+					if (visibilityMask[index + width]) {
+						addTriangle(mesh, index + 1, index + 1 + width, index + width, false, addNormals);
+					} else if (visibilityMask[index]) {
+						addTriangle(mesh, index, index + 1, index + 1 + width, false, addNormals);
+					}
+				}
+			}
+		}
+
+		mesh.endShape();
+
+		// Update the default mesh shader
+		meshShader.set("illuminateFrontFace", 1);
+	}
+
+	/**
+	 * Adds a triangle to the given shape if the three Kinect points are connected
+	 * 
+	 * @param shape the shape where the triangle should be added
 	 * @param index1 the first point index
 	 * @param index2 the second point index
 	 * @param index3 the third point index
-	 * @param addColors add the points colors to the triangle if true
-	 * @param addNormals add the points normals to the triangle if true
+	 * @param addColors add the points colors to the shape if true
+	 * @param addNormals add the points normals to the shape if true
 	 */
-	protected void addTriangle(int index1, int index2, int index3, boolean addColors, boolean addNormals) {
+	protected void addTriangle(PShape shape, int index1, int index2, int index3, boolean addColors,
+			boolean addNormals) {
 		PVector point1 = points[index1];
 		PVector point2 = points[index2];
 		PVector point3 = points[index3];
 
 		if (connected(point1, point2) && connected(point1, point3) && connected(point2, point3)) {
-			if (normals != null && addNormals) {
+			if (addNormals && normals != null) {
 				PVector normal1 = normals[index1];
 				PVector normal2 = normals[index2];
 				PVector normal3 = normals[index3];
@@ -276,66 +291,231 @@ public class Scan extends KinectPoints {
 					shape.fill(colors[index1]);
 					shape.normal(normal1.x, normal1.y, normal1.z);
 					shape.vertex(point1.x, point1.y, point1.z);
+					shape.attrib("barycenter", 1.0f, 0.0f, 0.0f);
 					shape.fill(colors[index2]);
 					shape.normal(normal2.x, normal2.y, normal2.z);
 					shape.vertex(point2.x, point2.y, point2.z);
+					shape.attrib("barycenter", 0.0f, 1.0f, 0.0f);
 					shape.fill(colors[index3]);
 					shape.normal(normal3.x, normal3.y, normal3.z);
 					shape.vertex(point3.x, point3.y, point3.z);
+					shape.attrib("barycenter", 0.0f, 0.0f, 1.0f);
 				} else {
 					shape.normal(normal1.x, normal1.y, normal1.z);
 					shape.vertex(point1.x, point1.y, point1.z);
+					shape.attrib("barycenter", 1.0f, 0.0f, 0.0f);
 					shape.normal(normal2.x, normal2.y, normal2.z);
 					shape.vertex(point2.x, point2.y, point2.z);
+					shape.attrib("barycenter", 0.0f, 1.0f, 0.0f);
 					shape.normal(normal3.x, normal3.y, normal3.z);
 					shape.vertex(point3.x, point3.y, point3.z);
+					shape.attrib("barycenter", 0.0f, 0.0f, 1.0f);
 				}
 			} else if (addColors) {
 				shape.fill(colors[index1]);
 				shape.vertex(point1.x, point1.y, point1.z);
+				shape.attrib("barycenter", 1.0f, 0.0f, 0.0f);
 				shape.fill(colors[index2]);
 				shape.vertex(point2.x, point2.y, point2.z);
+				shape.attrib("barycenter", 0.0f, 1.0f, 0.0f);
 				shape.fill(colors[index3]);
 				shape.vertex(point3.x, point3.y, point3.z);
+				shape.attrib("barycenter", 0.0f, 0.0f, 1.0f);
 			} else {
 				shape.vertex(point1.x, point1.y, point1.z);
+				shape.attrib("barycenter", 1.0f, 0.0f, 0.0f);
 				shape.vertex(point2.x, point2.y, point2.z);
+				shape.attrib("barycenter", 0.0f, 1.0f, 0.0f);
 				shape.vertex(point3.x, point3.y, point3.z);
+				shape.attrib("barycenter", 0.0f, 0.0f, 1.0f);
 			}
 		}
 	}
 
 	/**
-	 * Updates the scan shape
+	 * Calculates the points mesh
 	 * 
-	 * @param p the parent Processing applet
+	 * @param addNormals add the points normals to the points mesh if true
+	 * @param pointSize the size to use for the mesh points
 	 */
-	public void updateShape() {
-		if (shape != null) {
-			calculateShape();
+	public void calculatePointsMesh(boolean addNormals, float pointSize) {
+		pointsMesh = p.createShape();
+		pointsMesh.beginShape(PApplet.POINTS);
+		pointsMesh.strokeWeight(pointSize);
+
+		for (int index = 0; index < nPoints; index++) {
+			if (visibilityMask[index]) {
+				addPoint(pointsMesh, index, true, addNormals);
+			}
+		}
+
+		pointsMesh.endShape();
+	}
+
+	/**
+	 * Calculates the points mesh
+	 * 
+	 * @param addNormals add the points normals to the points mesh if true
+	 * @param pointSize the size to use for the mesh points
+	 * @param pointColor the color to use for the mesh points
+	 */
+	public void calculatePointsMesh(boolean addNormals, float pointSize, int pointColor) {
+		pointsMesh = p.createShape();
+		pointsMesh.beginShape(PApplet.POINTS);
+		pointsMesh.strokeWeight(pointSize);
+		pointsMesh.stroke(pointColor);
+
+		for (int index = 0; index < nPoints; index++) {
+			if (visibilityMask[index]) {
+				addPoint(pointsMesh, index, false, addNormals);
+			}
+		}
+
+		pointsMesh.endShape();
+	}
+
+	/**
+	 * Adds a point to the given shape
+	 * 
+	 * @param shape the shape where the point should be added
+	 * @param index the point index
+	 * @param addColors add the points colors to the shape if true
+	 * @param addNormals add the points normals to the shape if true
+	 */
+	protected void addPoint(PShape shape, int index, boolean addColors, boolean addNormals) {
+		PVector point = points[index];
+
+		if (addNormals && normals != null) {
+			PVector normal = normals[index];
+
+			if (addColors) {
+				shape.stroke(colors[index]);
+				shape.attribNormal("normal", normal.x, normal.y, normal.z);
+				shape.vertex(point.x, point.y, point.z);
+			} else {
+				shape.attribNormal("normal", normal.x, normal.y, normal.z);
+				shape.vertex(point.x, point.y, point.z);
+			}
+		} else if (addColors) {
+			shape.stroke(colors[index]);
+			shape.vertex(point.x, point.y, point.z);
+		} else {
+			shape.vertex(point.x, point.y, point.z);
 		}
 	}
 
 	/**
-	 * Updates the scan shape
+	 * Calculates the lines mesh
 	 * 
-	 * @param addNormals add the points normals to the shape if true
+	 * @param addNormals add the points normals to the lines mesh if true
+	 * @param lineWidth the width to use for the mesh lines
 	 */
-	public void updateShape(boolean addNormals) {
-		if (shape != null) {
-			calculateShape(addNormals);
+	public void calculateLinesMesh(boolean addNormals, float lineWidth) {
+		linesMesh = p.createShape();
+		linesMesh.beginShape(PApplet.LINES);
+		linesMesh.strokeCap(PApplet.SQUARE);
+		linesMesh.strokeWeight(lineWidth);
+
+		for (int row = 0; row < height - 1; row++) {
+			for (int col = 0; col < width - 1; col++) {
+				int index = col + row * width;
+
+				if (visibilityMask[index]) {
+					if (visibilityMask[index + 1]) {
+						addLine(linesMesh, index, index + 1, true, addNormals);
+					}
+
+					if (visibilityMask[index + width]) {
+						addLine(linesMesh, index, index + width, true, addNormals);
+					}
+
+					if (visibilityMask[index + 1 + width]) {
+						addLine(linesMesh, index, index + 1 + width, true, addNormals);
+					}
+				}
+			}
 		}
+
+		linesMesh.endShape();
 	}
 
 	/**
-	 * Updates the scan shape
+	 * Calculates the lines mesh
 	 * 
-	 * @param addNormals add the points normals to the shape if true
-	 * @param shapeColor the color to use for the whole shape
+	 * @param addNormals add the points normals to the lines mesh if true
+	 * @param lineWidth the width to use for the mesh lines
+	 * @param lineColor the color to use for the mesh lines
 	 */
-	public void updateShape(boolean addNormals, int shapeColor) {
-		if (shape != null) {
-			calculateShape(addNormals, shapeColor);
+	public void calculateLinesMesh(boolean addNormals, float lineWidth, int lineColor) {
+		linesMesh = p.createShape();
+		linesMesh.beginShape(PApplet.LINES);
+		linesMesh.strokeCap(PApplet.SQUARE);
+		linesMesh.strokeWeight(lineWidth);
+		linesMesh.stroke(lineColor);
+
+		for (int row = 0; row < height - 1; row++) {
+			for (int col = 0; col < width - 1; col++) {
+				int index = col + row * width;
+
+				if (visibilityMask[index]) {
+					if (visibilityMask[index + 1]) {
+						addLine(linesMesh, index, index + 1, false, addNormals);
+					}
+
+					if (visibilityMask[index + width]) {
+						addLine(linesMesh, index, index + width, false, addNormals);
+					}
+
+					if (visibilityMask[index + 1 + width]) {
+						addLine(linesMesh, index, index + 1 + width, false, addNormals);
+					}
+				}
+			}
+		}
+
+		linesMesh.endShape();
+	}
+
+	/**
+	 * Adds a line to the given shape if the two Kinect points are connected
+	 * 
+	 * @param shape the shape where the line should be added
+	 * @param index1 the first point index
+	 * @param index2 the second point index
+	 * @param addColors add the points colors to the shape if true
+	 * @param addNormals add the points normals to the shape if true
+	 */
+	protected void addLine(PShape shape, int index1, int index2, boolean addColors, boolean addNormals) {
+		PVector point1 = points[index1];
+		PVector point2 = points[index2];
+
+		if (connected(point1, point2)) {
+			if (addNormals && normals != null) {
+				PVector normal1 = normals[index1];
+				PVector normal2 = normals[index2];
+
+				if (addColors) {
+					shape.stroke(colors[index1]);
+					shape.attribNormal("normal", normal1.x, normal1.y, normal1.z);
+					shape.vertex(point1.x, point1.y, point1.z);
+					shape.stroke(colors[index2]);
+					shape.attribNormal("normal", normal2.x, normal2.y, normal2.z);
+					shape.vertex(point2.x, point2.y, point2.z);
+				} else {
+					shape.attribNormal("normal", normal1.x, normal1.y, normal1.z);
+					shape.vertex(point1.x, point1.y, point1.z);
+					shape.attribNormal("normal", normal2.x, normal2.y, normal2.z);
+					shape.vertex(point2.x, point2.y, point2.z);
+				}
+			} else if (addColors) {
+				shape.stroke(colors[index1]);
+				shape.vertex(point1.x, point1.y, point1.z);
+				shape.stroke(colors[index2]);
+				shape.vertex(point2.x, point2.y, point2.z);
+			} else {
+				shape.vertex(point1.x, point1.y, point1.z);
+				shape.vertex(point2.x, point2.y, point2.z);
+			}
 		}
 	}
 
@@ -348,10 +528,16 @@ public class Scan extends KinectPoints {
 	 * @param reductionFactor the scale reduction factor
 	 */
 	public void update(PVector[] pointsNew, PImage rgbImgNew, int[] depthMapNew, int reductionFactor) {
+		// Update the main scan arrays
 		super.update(pointsNew, rgbImgNew, depthMapNew, reductionFactor);
 
 		// Update the normals array
 		updateNormals();
+
+		// Remove the meshes
+		mesh = null;
+		pointsMesh = null;
+		linesMesh = null;
 	}
 
 	/**
@@ -369,35 +555,40 @@ public class Scan extends KinectPoints {
 			colors = new int[nPoints];
 			visibilityMask = new boolean[nPoints];
 
-			for (int i = 0; i < nPoints; i++) {
-				points[i] = new PVector();
+			for (int index = 0; index < nPoints; index++) {
+				points[index] = new PVector();
 			}
 
 			// Initialize the normals array if necessary
 			if (normals != null) {
 				normals = new PVector[nPoints];
 
-				for (int i = 0; i < nPoints; i++) {
-					normals[i] = new PVector();
+				for (int index = 0; index < nPoints; index++) {
+					normals[index] = new PVector();
 				}
 			}
 		}
 
 		// Update the main scan arrays
-		for (int i = 0; i < nPoints; i++) {
-			points[i].set(scan.points[i]);
-			colors[i] = scan.colors[i];
-			visibilityMask[i] = scan.visibilityMask[i];
+		for (int index = 0; index < nPoints; index++) {
+			points[index].set(scan.points[index]);
+			colors[index] = scan.colors[index];
+			visibilityMask[index] = scan.visibilityMask[index];
 		}
 
 		// Update the normals array if necessary
 		if (normals != null && scan.normals != null) {
-			for (int i = 0; i < nPoints; i++) {
-				normals[i].set(scan.normals[i]);
+			for (int index = 0; index < nPoints; index++) {
+				normals[index].set(scan.normals[index]);
 			}
 		} else {
 			updateNormals();
 		}
+
+		// Remove the meshes
+		mesh = null;
+		pointsMesh = null;
+		linesMesh = null;
 
 		// Set the rest of the scan variables
 		center.set(scan.center);
@@ -427,8 +618,8 @@ public class Scan extends KinectPoints {
 			colors = new int[nPoints];
 			visibilityMask = new boolean[nPoints];
 
-			for (int i = 0; i < nPoints; i++) {
-				points[i] = new PVector();
+			for (int index = 0; index < nPoints; index++) {
+				points[index] = new PVector();
 			}
 		}
 
@@ -436,8 +627,8 @@ public class Scan extends KinectPoints {
 		center.set(0, 0, 0);
 		int counter = 0;
 
-		for (int i = 0; i < nPoints; i++) {
-			String[] pointsAndColors = fileLines[i + 1].split(" ");
+		for (int index = 0; index < nPoints; index++) {
+			String[] pointsAndColors = fileLines[index + 1].split(" ");
 
 			if (Float.valueOf(pointsAndColors[3]) > 0) {
 				float x = Float.valueOf(pointsAndColors[0]);
@@ -447,15 +638,15 @@ public class Scan extends KinectPoints {
 				int green = Math.round(Float.valueOf(pointsAndColors[4]));
 				int blue = Math.round(Float.valueOf(pointsAndColors[5]));
 
-				points[i].set(x, y, z);
-				colors[i] = (red << 16) | (green << 8) | blue | 0xff000000;
-				visibilityMask[i] = true;
-				center.add(points[i]);
+				points[index].set(x, y, z);
+				colors[index] = (red << 16) | (green << 8) | blue | 0xff000000;
+				visibilityMask[index] = true;
+				center.add(points[index]);
 				counter++;
 			} else {
-				points[i].set(0, 0, 0);
-				colors[i] = 0;
-				visibilityMask[i] = false;
+				points[index].set(0, 0, 0);
+				colors[index] = 0;
+				visibilityMask[index] = false;
 			}
 		}
 
@@ -465,6 +656,11 @@ public class Scan extends KinectPoints {
 
 		// Update the normals array
 		updateNormals();
+
+		// Remove the meshes
+		mesh = null;
+		pointsMesh = null;
+		linesMesh = null;
 	}
 
 	/**
@@ -480,18 +676,18 @@ public class Scan extends KinectPoints {
 		lines[0] = width + " " + height;
 
 		// Write each point coordinates and color on a separate line
-		for (int i = 0; i < nPoints; i++) {
-			if (visibilityMask[i]) {
+		for (int index = 0; index < nPoints; index++) {
+			if (visibilityMask[index]) {
 				// Center the points coordinates
-				PVector point = PVector.sub(points[i], center);
-				int col = colors[i];
+				PVector point = PVector.sub(points[index], center);
+				int col = colors[index];
 				int red = (col >> 16) & 0xff;
 				int green = (col >> 8) & 0xff;
 				int blue = col & 0xff;
-				lines[i + 1] = point.x + " " + point.y + " " + point.z + " " + red + " " + green + " " + blue;
+				lines[index + 1] = point.x + " " + point.y + " " + point.z + " " + red + " " + green + " " + blue;
 			} else {
 				// Use a dummy line if the point should be masked
-				lines[i + 1] = "-99" + " " + "-99" + " " + "-99" + " " + "-99" + " " + "-99" + " " + "-99";
+				lines[index + 1] = "-99" + " " + "-99" + " " + "-99" + " " + "-99" + " " + "-99" + " " + "-99";
 			}
 		}
 
@@ -509,25 +705,24 @@ public class Scan extends KinectPoints {
 		Scan scan = new Scan(p, width, height);
 
 		// Fill the main scan arrays
-		for (int i = 0; i < nPoints; i++) {
-			scan.points[i].set(points[i]);
-			scan.colors[i] = colors[i];
-			scan.visibilityMask[i] = visibilityMask[i];
+		for (int index = 0; index < nPoints; index++) {
+			scan.points[index].set(points[index]);
+			scan.colors[index] = colors[index];
+			scan.visibilityMask[index] = visibilityMask[index];
 		}
 
 		// Fill the normals array if necessary
 		if (normals != null) {
 			scan.normals = new PVector[nPoints];
 
-			for (int i = 0; i < nPoints; i++) {
-				scan.normals[i] = normals[i].copy();
+			for (int index = 0; index < nPoints; index++) {
+				scan.normals[index] = normals[index].copy();
 			}
 		}
 
 		// Set the rest of the scan variables
 		scan.center.set(center);
 		scan.maxPointSeparationSq = maxPointSeparationSq;
-		scan.setBackSideColor(backColor);
 
 		return scan;
 	}
@@ -538,10 +733,16 @@ public class Scan extends KinectPoints {
 	 * @param corners an array with the lower and upper corners
 	 */
 	public void constrainPoints(PVector[] corners) {
+		// Constrain the points visibilities
 		super.constrainPoints(corners);
 
 		// Update the normals array
 		updateNormals();
+
+		// Remove the meshes
+		mesh = null;
+		pointsMesh = null;
+		linesMesh = null;
 	}
 
 	/**
@@ -612,6 +813,11 @@ public class Scan extends KinectPoints {
 
 			// Update the normals array
 			updateNormals();
+
+			// Remove the meshes
+			mesh = null;
+			pointsMesh = null;
+			linesMesh = null;
 		}
 	}
 
@@ -628,6 +834,11 @@ public class Scan extends KinectPoints {
 
 		// Translate the scan center
 		center.add(translationVector);
+
+		// Remove the meshes
+		mesh = null;
+		pointsMesh = null;
+		linesMesh = null;
 	}
 
 	/**
@@ -648,6 +859,11 @@ public class Scan extends KinectPoints {
 
 		// Update the normals array
 		updateNormals();
+
+		// Remove the meshes
+		mesh = null;
+		pointsMesh = null;
+		linesMesh = null;
 	}
 
 	/**
@@ -662,6 +878,14 @@ public class Scan extends KinectPoints {
 			point.mult(scaleFactor);
 			point.add(center);
 		}
+
+		// Update the normals array
+		updateNormals();
+
+		// Remove the meshes
+		mesh = null;
+		pointsMesh = null;
+		linesMesh = null;
 
 		// Update the maximum scan separation between points
 		setMaxPointSeparation(scaleFactor * getMaxPointSeparation());
@@ -740,6 +964,11 @@ public class Scan extends KinectPoints {
 
 			// Update the normals array
 			updateNormals();
+
+			// Remove the meshes
+			mesh = null;
+			pointsMesh = null;
+			linesMesh = null;
 		}
 	}
 
@@ -758,8 +987,8 @@ public class Scan extends KinectPoints {
 			int[] colorsNew = new int[nPointsNew];
 			boolean[] visibilityMaskNew = new boolean[nPointsNew];
 
-			for (int i = 0; i < nPointsNew; i++) {
-				pointsNew[i] = new PVector();
+			for (int index = 0; index < nPointsNew; index++) {
+				pointsNew[index] = new PVector();
 			}
 
 			// Populate the new arrays
@@ -786,6 +1015,11 @@ public class Scan extends KinectPoints {
 
 			// Update the normals array
 			updateNormals();
+
+			// Remove the meshes
+			mesh = null;
+			pointsMesh = null;
+			linesMesh = null;
 		}
 	}
 
@@ -808,8 +1042,8 @@ public class Scan extends KinectPoints {
 			int[] colorsNew = new int[nPointsNew];
 			boolean[] visibilityMaskNew = new boolean[nPointsNew];
 
-			for (int i = 0; i < nPointsNew; i++) {
-				pointsNew[i] = new PVector();
+			for (int index = 0; index < nPointsNew; index++) {
+				pointsNew[index] = new PVector();
 			}
 
 			// Populate the new arrays
@@ -836,6 +1070,11 @@ public class Scan extends KinectPoints {
 
 			// Update the normals array
 			updateNormals();
+
+			// Remove the meshes
+			mesh = null;
+			pointsMesh = null;
+			linesMesh = null;
 		}
 	}
 
@@ -930,9 +1169,15 @@ public class Scan extends KinectPoints {
 			}
 		}
 
-		// Update the normals array if necessary
+		// Check if the scan changed
 		if (holesHaveBeenFilled) {
+			// Update the normals array
 			updateNormals();
+
+			// Remove the meshes
+			mesh = null;
+			pointsMesh = null;
+			linesMesh = null;
 		}
 	}
 
@@ -1010,6 +1255,11 @@ public class Scan extends KinectPoints {
 
 			// Update the normals array
 			updateNormals();
+
+			// Remove the meshes
+			mesh = null;
+			pointsMesh = null;
+			linesMesh = null;
 		}
 	}
 
@@ -1076,24 +1326,19 @@ public class Scan extends KinectPoints {
 	}
 
 	/**
-	 * Sets the scan point that is closest to the given screen position as non visible
-	 * 
-	 * This method should be called between the Processing pushMatrix and popMatrix methods that affect how the scan is
-	 * drawn on the screen
+	 * Returns the coordinates of the scan point that is closest to a given screen position
 	 * 
 	 * @param xScreen the screen x position
 	 * @param yScreen the screen y position
 	 * @param searchRadius the radius to search for close points
+	 * @return the coordinates of the point that is closest to the given screen position. Returns null if no point is
+	 *         found
 	 */
-	public void disolveUnderScreenPosition(float xScreen, float yScreen, float searchRadius) {
+	public PVector getPointUnderScreenPosition(float xScreen, float yScreen, float searchRadius) {
 		// Get the index of the point that is closest to the screen position
 		int index = getPointIndexUnderScreenPosition(xScreen, yScreen, searchRadius);
 
-		// Check that there is a close point
-		if (index >= 0) {
-			// Set the point as non visible
-			visibilityMask[index] = false;
-		}
+		return index < 0 ? null : points[index].copy();
 	}
 
 	/**
@@ -1107,13 +1352,13 @@ public class Scan extends KinectPoints {
 	 * @param searchRadius the radius to search for close points
 	 */
 	public void centerAtScreenPosition(float xScreen, float yScreen, float searchRadius) {
-		// Get the index of the scan point that is closest to the screen position
-		int index = getPointIndexUnderScreenPosition(xScreen, yScreen, searchRadius);
+		// Get the scan point that is closest to the screen position
+		PVector point = getPointUnderScreenPosition(xScreen, yScreen, searchRadius);
 
 		// Check that there is a close point
-		if (index >= 0) {
+		if (point != null) {
 			// Subtract the point coordinates to all the scan points
-			translate(PVector.mult(points[index], -1));
+			translate(PVector.mult(point, -1));
 		}
 	}
 
@@ -1127,74 +1372,84 @@ public class Scan extends KinectPoints {
 	}
 
 	/**
-	 * Draws a triangle between three Kinect points if they are connected
+	 * Draws the scan mesh on the screen
 	 * 
-	 * @param index1 the first point index
-	 * @param index2 the second point index
-	 * @param index3 the third point index
-	 * @param useColors use the points colors if true
+	 * @param backColor the color to use for the mesh back side
 	 */
-	protected void drawTriangle(int index1, int index2, int index3, boolean useColors) {
-		if (normals == null) {
-			super.drawTriangle(index1, index2, index3, useColors);
-		} else {
-			PVector point1 = points[index1];
-			PVector point2 = points[index2];
-			PVector point3 = points[index3];
+	public void drawMesh(int backColor) {
+		if (mesh != null) {
+			// Update the default mesh shader
+			meshShader.set("backColor", p.red(backColor) / 255f, p.green(backColor) / 255f, p.blue(backColor) / 255f,
+					p.alpha(backColor) / 255f);
 
-			if (connected(point1, point2) && connected(point1, point3) && connected(point2, point3)) {
-				PVector normal1 = normals[index1];
-				PVector normal2 = normals[index2];
-				PVector normal3 = normals[index3];
-
-				if (useColors) {
-					p.fill(colors[index1]);
-					p.normal(normal1.x, normal1.y, normal1.z);
-					p.vertex(point1.x, point1.y, point1.z);
-					p.fill(colors[index2]);
-					p.normal(normal2.x, normal2.y, normal2.z);
-					p.vertex(point2.x, point2.y, point2.z);
-					p.fill(colors[index3]);
-					p.normal(normal3.x, normal3.y, normal3.z);
-					p.vertex(point3.x, point3.y, point3.z);
-				} else {
-					p.normal(normal1.x, normal1.y, normal1.z);
-					p.vertex(point1.x, point1.y, point1.z);
-					p.normal(normal2.x, normal2.y, normal2.z);
-					p.vertex(point2.x, point2.y, point2.z);
-					p.normal(normal3.x, normal3.y, normal3.z);
-					p.vertex(point3.x, point3.y, point3.z);
-				}
-			}
+			// Draw the scan mesh with the default mesh shader
+			p.shader(meshShader);
+			p.shape(mesh);
+			p.resetShader();
 		}
 	}
 
 	/**
-	 * Draws the scan shape on the screen
+	 * Draws the scan mesh on the screen
 	 */
-	public void drawShape() {
-		p.shader(defaultShader);
-		p.shape(shape);
+	public void drawMesh() {
+		drawMesh(0xffffffff);
 	}
 
 	/**
-	 * Draws the scan shape on the screen
+	 * Draws the scan mesh on the screen using a custom shader
 	 * 
-	 * @param shader the shader that should be used to paint the scan
+	 * @param shader the shader that should be used to draw the scan mesh
 	 */
-	public void drawShape(PShader shader) {
-		p.shader(shader);
-		p.shape(shape);
+	public void drawMesh(PShader shader) {
+		if (mesh != null) {
+			p.shader(shader);
+			p.shape(mesh);
+			p.resetShader();
+		}
 	}
 
 	/**
-	 * Sets the scan shape back side color
-	 * 
-	 * @param newBackColor the new scan shape back side color
+	 * Draws the scan points mesh on the screen
 	 */
-	public void setBackSideColor(int newBackColor) {
-		backColor = newBackColor;
-		defaultShader.set("backColor", p.red(backColor) / 255f, p.green(backColor) / 255f, p.blue(backColor) / 255f,
-				p.alpha(backColor) / 255f);
+	public void drawPointsMesh() {
+		if (pointsMesh != null) {
+			p.shape(pointsMesh);
+		}
+	}
+
+	/**
+	 * Draws the scan points mesh on the screen using a custom shader
+	 * 
+	 * @param shader the shader that should be used to draw the scan mesh
+	 */
+	public void drawPointsMesh(PShader shader) {
+		if (pointsMesh != null) {
+			p.shader(shader, PApplet.POINTS);
+			p.shape(pointsMesh);
+			p.resetShader();
+		}
+	}
+
+	/**
+	 * Draws the scan lines mesh on the screen
+	 */
+	public void drawLinesMesh() {
+		if (linesMesh != null) {
+			p.shape(linesMesh);
+		}
+	}
+
+	/**
+	 * Draws the scan lines mesh on the screen using a custom shader
+	 * 
+	 * @param shader the shader that should be used to draw the scan mesh
+	 */
+	public void drawLinesMesh(PShader shader) {
+		if (linesMesh != null) {
+			p.shader(shader, PApplet.LINES);
+			p.shape(linesMesh);
+			p.resetShader();
+		}
 	}
 }

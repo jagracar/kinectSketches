@@ -1,6 +1,7 @@
 package jagracar.kinect.sculpture;
 
 import processing.core.PApplet;
+import processing.core.PShape;
 import toxi.geom.Vec3D;
 
 /**
@@ -26,19 +27,19 @@ public class SculptureSection {
 	protected Vec3D[] points;
 
 	/**
-	 * Constructs a sculpture section centered on the two given points and perpendicular to their direction
+	 * Constructs a sculpture section
 	 * 
-	 * @param pointBefore the point before the section
-	 * @param pointAfter the point after the section
-	 * @param referencePoint the reference point from the previous section
-	 * @param referenceNormal the normal vector from the previous section
+	 * @param center the section center
+	 * @param normal the section plane normal
 	 * @param radius the section radius
 	 * @param sides the number of section sides
+	 * @param referencePoint the reference point from the previous section
+	 * @param referenceNormal the normal vector from the previous section
 	 */
-	public SculptureSection(Vec3D pointBefore, Vec3D pointAfter, Vec3D referencePoint, Vec3D referenceNormal,
-			float radius, int sides) {
-		this.center = pointAfter.add(pointBefore).scaleSelf(0.5f);
-		this.normal = pointAfter.sub(pointBefore).normalize();
+	public SculptureSection(Vec3D center, Vec3D normal, float radius, int sides, Vec3D referencePoint,
+			Vec3D referenceNormal) {
+		this.center = center.copy();
+		this.normal = normal.copy();
 		this.points = new Vec3D[Math.max(2, sides)];
 
 		// Calculate the intersection point between the line defined by the reference point and the reference normal
@@ -57,27 +58,36 @@ public class SculptureSection {
 	}
 
 	/**
+	 * Calculates the mesh formed by the section points
+	 * 
+	 * @param p the parent Processing applet
+	 * @param color the mesh color
+	 * @return the section mesh
+	 */
+	public PShape calculateMesh(PApplet p, int color) {
+		PShape mesh = p.createShape();
+		mesh.beginShape();
+		mesh.noStroke();
+		mesh.fill(color);
+
+		for (Vec3D point : points) {
+			mesh.vertex(point.x, point.y, point.z);
+		}
+
+		mesh.endShape(PApplet.CLOSE);
+
+		return mesh;
+	}
+
+	/**
 	 * Draws the filled section on the screen
 	 * 
 	 * @param p the parent Processing applet
 	 * @param color the color to use
 	 */
 	public void draw(PApplet p, int color) {
-		p.pushStyle();
-		p.noStroke();
-		p.fill(color);
-
-		p.beginShape(PApplet.TRIANGLE_FAN);
-		p.vertex(center.x, center.y, center.z);
-
-		for (Vec3D point : points) {
-			p.vertex(point.x, point.y, point.z);
-		}
-
-		Vec3D closePoint = points[0];
-		p.vertex(closePoint.x, closePoint.y, closePoint.z);
-		p.endShape();
-
-		p.popStyle();
+		PShape mesh = calculateMesh(p, color);
+		mesh.setFill(color);
+		p.shape(mesh);
 	}
 }

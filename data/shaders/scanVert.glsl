@@ -1,6 +1,8 @@
 //
-// Based on the default Processing light vertex shader:
+// Based on the default Processing light shaders:
+// 
 // https://github.com/processing/processing/blob/master/core/src/processing/opengl/shaders/LightVert.glsl
+// https://github.com/processing/processing/blob/master/core/src/processing/opengl/shaders/LightFrag.glsl
 //
 
 // Matrix uniforms
@@ -9,13 +11,14 @@ uniform mat4 transformMatrix;
 uniform mat3 normalMatrix;
 
 // Scan specific uniforms
-uniform int time;
+uniform float time;
 uniform int effect;
 
 // Vertex attributes
 attribute vec4 position;
-attribute vec4 color;
 attribute vec3 normal;
+attribute vec3 barycenter;
+attribute vec4 color;
 
 // Light attributes
 attribute vec4 ambient;
@@ -25,8 +28,10 @@ attribute float shininess;
 
 // Varyings
 varying vec3 vWcPosition;
-varying vec4 vColor;
+varying vec3 vEcPosition;
 varying vec3 vEcNormal;
+varying vec3 vBarycenter;
+varying vec4 vColor;
 varying vec4 vAmbient;
 varying vec4 vSpecular;
 varying vec4 vEmissive;
@@ -43,18 +48,19 @@ vec3 pulsationEffect(vec3 normalVector) {
 // Main program
 //
 void main() {
-	// Get the position in world coordinates
+	// Apply some of the effects
 	vec4 wcPosition = position;
 
-  	// Apply some of the effects
 	if(effect == 1) {
 		wcPosition.xyz += pulsationEffect(normal);
 	}
 
 	// Save the varyings
 	vWcPosition = wcPosition.xyz;
-	vColor = color;
+	vEcPosition = vec3(modelviewMatrix * wcPosition);
 	vEcNormal = normalize(normalMatrix * normal);
+	vBarycenter = barycenter;
+	vColor = color;
 	vAmbient = ambient;
 	vSpecular = specular;
 	vEmissive = emissive;

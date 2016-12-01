@@ -3,6 +3,7 @@ package jagracar.kinect.sculpture;
 import java.util.ArrayList;
 
 import processing.core.PApplet;
+import processing.core.PShape;
 import processing.core.PVector;
 import toxi.geom.Spline3D;
 import toxi.geom.Vec3D;
@@ -15,9 +16,9 @@ import toxi.geom.Vec3D;
 public class Sculpture {
 
 	/**
-	 * The minimum distance allowed between two consecutive spline control points
+	 * The parent Processing applet
 	 */
-	protected static final float MINIMUM_DISTANCE_SQ = 50 * 50;
+	protected PApplet p;
 
 	/**
 	 * The sculpture section radius
@@ -50,35 +51,55 @@ public class Sculpture {
 	protected ArrayList<SculptureSection> sections;
 
 	/**
+	 * The sculpture mesh
+	 */
+	protected PShape mesh;
+
+	/**
+	 * The mesh color
+	 */
+	protected int meshColor;
+
+	/**
+	 * The minimum distance allowed between two consecutive spline control points
+	 */
+	protected float minimumDistanceSq = 50 * 50;
+
+	/**
 	 * Constructs an empty sculpture
 	 * 
+	 * @param p the parent Processing applet
 	 * @param sectionRadius the sculpture section radius
 	 * @param sectionSides the number of sculpture section sides
 	 * @param subdivisions the number of spline vertices between to control points
 	 */
-	public Sculpture(float sectionRadius, int sectionSides, int subdivisions) {
+	public Sculpture(PApplet p, float sectionRadius, int sectionSides, int subdivisions) {
+		this.p = p;
 		this.sectionRadius = sectionRadius;
 		this.sectionSides = sectionSides;
 		this.subdivisions = subdivisions;
 		this.spline = new Spline3D();
 		this.previousPoint = new Vec3D();
 		this.sections = new ArrayList<SculptureSection>();
+		this.mesh = null;
+		this.meshColor = 0xffffffff;
 	}
 
 	/**
 	 * Adds a new control point to the sculpture
 	 * 
-	 * @param point the new control point
+	 * @param newPoint the new control point
 	 */
-	public void addControlPoint(PVector point) {
-		Vec3D toxiPoint = new Vec3D(point.x, point.y, point.z);
+	public void addControlPoint(PVector newPoint) {
+		Vec3D controlPoint = new Vec3D(newPoint.x, newPoint.y, newPoint.z);
 
-		if (getNumControlPoints() == 0 || previousPoint.distanceToSquared(toxiPoint) > MINIMUM_DISTANCE_SQ) {
-			spline.add(toxiPoint);
-			previousPoint.set(toxiPoint);
+		if (getNumControlPoints() == 0 || previousPoint.distanceToSquared(controlPoint) > minimumDistanceSq) {
+			spline.add(controlPoint);
+			previousPoint.set(controlPoint);
 
-			// Calculate the sculpture sections
+			// Calculate the sculpture sections and the mesh
 			calculateSections();
+			calculateMesh();
 		}
 	}
 
@@ -100,8 +121,9 @@ public class Sculpture {
 		if (sectionRadius != newSectionRadius) {
 			sectionRadius = newSectionRadius;
 
-			// Calculate the sculpture sections
+			// Calculate the sculpture sections and the mesh
 			calculateSections();
+			calculateMesh();
 		}
 	}
 
@@ -114,29 +136,47 @@ public class Sculpture {
 		if (sectionSides != newSectionSides && newSectionSides > 1) {
 			sectionSides = newSectionSides;
 
-			// Calculate the sculpture sections
+			// Calculate the sculpture sections and the mesh
 			calculateSections();
+			calculateMesh();
 		}
 	}
 
 	/**
-	 * Sets the number of spline vertices between to control points
+	 * Sets the number of spline vertices between two control points
 	 * 
-	 * @param newSubdivisions the new number of spline vertices between to control points
+	 * @param newSubdivisions the new number of spline vertices between two control points
 	 */
 	public void setSubdivisions(int newSubdivisions) {
 		if (subdivisions != newSubdivisions && newSubdivisions > 1) {
 			subdivisions = newSubdivisions;
 
-			// Calculate the sculpture sections
+			// Calculate the sculpture sections and the mesh
 			calculateSections();
+			calculateMesh();
 		}
 	}
 
 	/**
-	 * Returns the number of sculpture section radius
+	 * Sets the sculpture mesh color
 	 * 
-	 * @return the number of sculpture section radius
+	 * @param newColor the new mesh color
+	 */
+	public void setColor(int newColor) {
+		if (meshColor != newColor) {
+			meshColor = newColor;
+
+			// Update the mesh
+			if (mesh != null) {
+				mesh.setFill(meshColor);
+			}
+		}
+	}
+
+	/**
+	 * Returns the sculpture section radius
+	 * 
+	 * @return the sculpture section radius
 	 */
 	public float getSectionRadius() {
 		return sectionRadius;
@@ -147,14 +187,14 @@ public class Sculpture {
 	 * 
 	 * @return the number of sculpture section sides
 	 */
-	public float getSectionSides() {
+	public int getSectionSides() {
 		return sectionSides;
 	}
 
 	/**
-	 * Returns the number of spline vertices between to control points
+	 * Returns the number of spline vertices between two control points
 	 * 
-	 * @return the number of spline vertices between to control points
+	 * @return the number of spline vertices between two control points
 	 */
 	public int getSubdivisions() {
 		return subdivisions;
@@ -174,8 +214,12 @@ public class Sculpture {
 			Vec3D refNormal = vertices.get(1).sub(vertices.get(0)).normalize();
 
 			for (int i = 0; i < vertices.size() - 1; i++) {
-				SculptureSection section = new SculptureSection(vertices.get(i), vertices.get(i + 1), refPoint,
-						refNormal, sectionRadius, sectionSides);
+				Vec3D pointBefore = vertices.get(i);
+				Vec3D pointAfter = vertices.get(i + 1);
+				Vec3D center = pointAfter.add(pointBefore).scaleSelf(0.5f);
+				Vec3D normal = pointAfter.sub(pointBefore).normalize();
+				SculptureSection section = new SculptureSection(center, normal, sectionRadius, sectionSides, refPoint,
+						refNormal);
 				refPoint = section.points[0];
 				refNormal = section.normal;
 				sections.add(section);
@@ -184,12 +228,69 @@ public class Sculpture {
 	}
 
 	/**
-	 * Clears the sculpture, removing the control points and the sculpture sections
+	 * Calculates the sculpture mesh
+	 */
+	protected void calculateMesh() {
+		if (sections.size() > 1) {
+			// Create the sculpture mesh
+			mesh = p.createShape(PApplet.GROUP);
+			mesh.fill(meshColor);
+
+			// Add the front side
+			mesh.addChild(sections.get(0).calculateMesh(p, meshColor));
+
+			// Calculate and add the mesh surface
+			PShape surface = p.createShape();
+			surface.beginShape(PApplet.TRIANGLES);
+			surface.noStroke();
+			surface.fill(meshColor);
+
+			for (int i = 0; i < sections.size() - 1; i++) {
+				SculptureSection section1 = sections.get(i);
+				SculptureSection section2 = sections.get(i + 1);
+
+				for (int j = 0; j < section1.points.length - 1; j++) {
+					Vec3D point1 = section1.points[j];
+					Vec3D point2 = section1.points[j + 1];
+					Vec3D point3 = section2.points[j];
+					Vec3D point4 = section2.points[j + 1];
+					surface.vertex(point1.x, point1.y, point1.z);
+					surface.vertex(point2.x, point2.y, point2.z);
+					surface.vertex(point3.x, point3.y, point3.z);
+					surface.vertex(point2.x, point2.y, point2.z);
+					surface.vertex(point4.x, point4.y, point4.z);
+					surface.vertex(point3.x, point3.y, point3.z);
+				}
+
+				Vec3D closePoint1 = section1.points[section1.points.length - 1];
+				Vec3D closePoint2 = section1.points[0];
+				Vec3D closePoint3 = section2.points[section1.points.length - 1];
+				Vec3D closePoint4 = section2.points[0];
+				surface.vertex(closePoint1.x, closePoint1.y, closePoint1.z);
+				surface.vertex(closePoint2.x, closePoint2.y, closePoint2.z);
+				surface.vertex(closePoint3.x, closePoint3.y, closePoint3.z);
+				surface.vertex(closePoint2.x, closePoint2.y, closePoint2.z);
+				surface.vertex(closePoint4.x, closePoint4.y, closePoint4.z);
+				surface.vertex(closePoint3.x, closePoint3.y, closePoint3.z);
+			}
+
+			surface.endShape();
+
+			mesh.addChild(surface);
+
+			// Add the back side
+			mesh.addChild(sections.get(sections.size() - 1).calculateMesh(p, meshColor));
+		}
+	}
+
+	/**
+	 * Clears the sculpture, removing the control points, the sculpture sections and the mesh
 	 */
 	public void clear() {
 		spline = new Spline3D();
 		previousPoint.set(0, 0, 0);
 		sections.clear();
+		mesh = null;
 	}
 
 	/**
@@ -219,8 +320,9 @@ public class Sculpture {
 
 			previousPoint.subSelf(sculptureCenter);
 
-			// Calculate the sculpture sections
+			// Calculate the sculpture sections and the mesh
 			calculateSections();
+			calculateMesh();
 		}
 	}
 
@@ -276,54 +378,19 @@ public class Sculpture {
 
 	/**
 	 * Draws the sculpture on the screen
-	 * 
-	 * @param p the parent Processing applet
-	 * @param color the sculpture color
 	 */
-	public void draw(PApplet p, int color) {
-		if (sections.size() > 0) {
-			// Draw the front side
-			sections.get(0).draw(p, color);
-
-			// Draw the sculpture surface
-			p.pushStyle();
-			p.noStroke();
-			p.fill(color);
-
-			for (int i = 0; i < sections.size() - 1; i++) {
-				SculptureSection section1 = sections.get(i);
-				SculptureSection section2 = sections.get(i + 1);
-
-				p.beginShape(PApplet.TRIANGLE_STRIP);
-
-				for (int j = 0; j < section1.points.length; j++) {
-					Vec3D point1 = section1.points[j];
-					Vec3D point2 = section2.points[j];
-					p.vertex(point1.x, point1.y, point1.z);
-					p.vertex(point2.x, point2.y, point2.z);
-				}
-
-				Vec3D closePoint1 = section1.points[0];
-				Vec3D closePoint2 = section2.points[0];
-				p.vertex(closePoint1.x, closePoint1.y, closePoint1.z);
-				p.vertex(closePoint2.x, closePoint2.y, closePoint2.z);
-				p.endShape();
-			}
-
-			p.popStyle();
-
-			// Draw the back side
-			sections.get(sections.size() - 1).draw(p, color);
+	public void draw() {
+		if (mesh != null) {
+			p.shape(mesh);
 		}
 	}
 
 	/**
 	 * Initializes the spline from a file
 	 * 
-	 * @param p the parent Processing applet
 	 * @param fileName the name of the file containing the spline control points
 	 */
-	public void initFromFile(PApplet p, String fileName) {
+	public void initFromFile(String fileName) {
 		// Load the file containing the control points
 		String[] fileLines = p.loadStrings(fileName);
 
@@ -343,17 +410,17 @@ public class Sculpture {
 		// Get the last added point
 		previousPoint.set(spline.getPointList().get(getNumControlPoints() - 1));
 
-		// Calculate the sculpture sections
+		// Calculate the sculpture sections and the mesh
 		calculateSections();
+		calculateMesh();
 	}
 
 	/**
 	 * Saves the sculpture control points
 	 * 
-	 * @param p the parent Processing applet
 	 * @param fileName the name of the file where the points will be saved
 	 */
-	public void savePoints(PApplet p, String fileName) {
+	public void savePoints(String fileName) {
 		// Save sculpture control points in the file
 		ArrayList<Vec3D> controlPoints = (ArrayList<Vec3D>) spline.getPointList();
 		String[] pointsCoordinates = new String[controlPoints.size()];

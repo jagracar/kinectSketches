@@ -1,5 +1,6 @@
 //
 // Based on the default Processing light vertex shader:
+// 
 // https://github.com/processing/processing/blob/master/core/src/processing/opengl/shaders/LightFrag.glsl
 //
 
@@ -9,12 +10,13 @@ precision mediump int;
 #endif
 
 // Varyings
-varying vec4 vertColor;
-varying vec4 backVertColor;
+varying vec4 vFrontColor;
+varying vec4 vBackColor;
 
 //
 // Main program
 //
 void main() {
-	gl_FragColor = gl_FrontFacing ? vertColor : backVertColor;
+	// Fragment shader output
+	gl_FragColor = gl_FrontFacing ? vFrontColor : vBackColor;
 }

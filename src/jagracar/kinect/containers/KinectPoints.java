@@ -68,8 +68,8 @@ public class KinectPoints {
 		this.visibilityMask = new boolean[this.nPoints];
 
 		// Initialize the points array
-		for (int i = 0; i < this.nPoints; i++) {
-			this.points[i] = new PVector();
+		for (int index = 0; index < this.nPoints; index++) {
+			this.points[index] = new PVector();
 		}
 	}
 
@@ -130,8 +130,8 @@ public class KinectPoints {
 			colors = new int[nPoints];
 			visibilityMask = new boolean[nPoints];
 
-			for (int i = 0; i < nPoints; i++) {
-				points[i] = new PVector();
+			for (int index = 0; index < nPoints; index++) {
+				points[index] = new PVector();
 			}
 		}
 
@@ -161,10 +161,10 @@ public class KinectPoints {
 		KinectPoints kp = new KinectPoints(p, width, height);
 
 		// Fill the arrays
-		for (int i = 0; i < nPoints; i++) {
-			kp.points[i].set(points[i]);
-			kp.colors[i] = colors[i];
-			kp.visibilityMask[i] = visibilityMask[i];
+		for (int index = 0; index < nPoints; index++) {
+			kp.points[index].set(points[index]);
+			kp.colors[index] = colors[index];
+			kp.visibilityMask[index] = visibilityMask[index];
 		}
 
 		// Set the rest of the variables
@@ -186,9 +186,9 @@ public class KinectPoints {
 		float yMax = corners[1].y;
 		float zMax = corners[1].z;
 
-		for (int i = 0; i < nPoints; i++) {
-			PVector point = points[i];
-			visibilityMask[i] &= (point.x > xMin) && (point.x < xMax) && (point.y > yMin) && (point.y < yMax)
+		for (int index = 0; index < nPoints; index++) {
+			PVector point = points[index];
+			visibilityMask[index] &= (point.x > xMin) && (point.x < xMax) && (point.y > yMin) && (point.y < yMax)
 					&& (point.z > zMin) && (point.z < zMax);
 		}
 	}
@@ -206,9 +206,9 @@ public class KinectPoints {
 		float yMax = -Float.MAX_VALUE;
 		float zMax = -Float.MAX_VALUE;
 
-		for (int i = 0; i < nPoints; i++) {
-			if (visibilityMask[i]) {
-				PVector point = points[i];
+		for (int index = 0; index < nPoints; index++) {
+			if (visibilityMask[index]) {
+				PVector point = points[index];
 
 				if (point.x < xMin) {
 					xMin = point.x;
@@ -302,12 +302,13 @@ public class KinectPoints {
 	 */
 	public void drawAsPixels(int pixelSize) {
 		p.pushStyle();
+		p.strokeCap(PApplet.SQUARE);
 		p.strokeWeight(pixelSize);
 
-		for (int i = 0; i < nPoints; i++) {
-			if (visibilityMask[i]) {
-				PVector point = points[i];
-				p.stroke(colors[i]);
+		for (int index = 0; index < nPoints; index++) {
+			if (visibilityMask[index]) {
+				PVector point = points[index];
+				p.stroke(colors[index]);
 				p.point(point.x, point.y, point.z);
 			}
 		}
@@ -323,12 +324,13 @@ public class KinectPoints {
 	 */
 	public void drawAsPixels(int pixelSize, int pixelColor) {
 		p.pushStyle();
+		p.strokeCap(PApplet.SQUARE);
 		p.strokeWeight(pixelSize);
 		p.stroke(pixelColor);
 
-		for (int i = 0; i < nPoints; i++) {
-			if (visibilityMask[i]) {
-				PVector point = points[i];
+		for (int index = 0; index < nPoints; index++) {
+			if (visibilityMask[index]) {
+				PVector point = points[index];
 				p.point(point.x, point.y, point.z);
 			}
 		}
@@ -511,13 +513,22 @@ public class KinectPoints {
 	 * 
 	 * @param index1 the first point index
 	 * @param index2 the second point index
+	 * @param useColors use the points colors if true
 	 */
-	protected void drawLine(int index1, int index2) {
+	protected void drawLine(int index1, int index2, boolean useColors) {
 		PVector point1 = points[index1];
 		PVector point2 = points[index2];
 
 		if (connected(point1, point2)) {
-			p.line(point1.x, point1.y, point1.z, point2.x, point2.y, point2.z);
+			if (useColors) {
+				p.stroke(colors[index1]);
+				p.vertex(point1.x, point1.y, point1.z);
+				p.stroke(colors[index2]);
+				p.vertex(point2.x, point2.y, point2.z);
+			} else {
+				p.vertex(point1.x, point1.y, point1.z);
+				p.vertex(point2.x, point2.y, point2.z);
+			}
 		}
 	}
 
@@ -528,30 +539,31 @@ public class KinectPoints {
 	 */
 	public void drawAsLines(float lineWeight) {
 		p.pushStyle();
+		p.strokeCap(PApplet.SQUARE);
 		p.strokeWeight(lineWeight);
+		p.beginShape(PApplet.LINES);
 
 		for (int row = 0; row < height - 1; row++) {
 			for (int col = 0; col < width - 1; col++) {
 				int index = col + row * width;
 
 				if (visibilityMask[index]) {
-					p.stroke(colors[index]);
-
 					if (visibilityMask[index + 1]) {
-						drawLine(index, index + 1);
+						drawLine(index, index + 1, true);
 					}
 
 					if (visibilityMask[index + width]) {
-						drawLine(index, index + width);
+						drawLine(index, index + width, true);
 					}
 
 					if (visibilityMask[index + 1 + width]) {
-						drawLine(index, index + 1 + width);
+						drawLine(index, index + 1 + width, true);
 					}
 				}
 			}
 		}
 
+		p.endShape();
 		p.popStyle();
 	}
 
@@ -563,8 +575,10 @@ public class KinectPoints {
 	 */
 	public void drawAsLines(float lineWeight, int lineColor) {
 		p.pushStyle();
+		p.strokeCap(PApplet.SQUARE);
 		p.strokeWeight(lineWeight);
 		p.stroke(lineColor);
+		p.beginShape(PApplet.LINES);
 
 		for (int row = 0; row < height - 1; row++) {
 			for (int col = 0; col < width - 1; col++) {
@@ -572,20 +586,21 @@ public class KinectPoints {
 
 				if (visibilityMask[index]) {
 					if (visibilityMask[index + 1]) {
-						drawLine(index, index + 1);
+						drawLine(index, index + 1, false);
 					}
 
 					if (visibilityMask[index + width]) {
-						drawLine(index, index + width);
+						drawLine(index, index + width, false);
 					}
 
 					if (visibilityMask[index + 1 + width]) {
-						drawLine(index, index + 1 + width);
+						drawLine(index, index + 1 + width, false);
 					}
 				}
 			}
 		}
 
+		p.endShape();
 		p.popStyle();
 	}
 

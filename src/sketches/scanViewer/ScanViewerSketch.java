@@ -5,7 +5,6 @@ import jagracar.kinect.containers.Scan;
 import jagracar.kinect.util.ImageHelper;
 import processing.core.PApplet;
 import processing.core.PImage;
-import processing.core.PVector;
 import processing.event.MouseEvent;
 import processing.opengl.PShader;
 
@@ -17,19 +16,31 @@ import processing.opengl.PShader;
 public class ScanViewerSketch extends PApplet {
 
 	// Sketch control variables
-	public String fileName = "scan1.points";
 	public String scanDir = "data/scans/";
+	public String[] scanFiles = new String[] { "scan1.points", "scan2.points", "scan3.points", "scan4.points",
+			"chloe.points", "diego.points" };
 	public String shadersDir = "data/shaders/";
-	public PVector limits[];
+	public String[] meshShaderFiles = new String[] { "scanFrag.glsl", "scanVert.glsl" };
+	public String[] pointShaderFiles = new String[] { "pointFrag.glsl", "pointVert.glsl" };
+	public int currentScanIndex = 0;
+	public int startResolution = 2;
+	public int startFillHoleSize = 15;
+	public int startSmothness = 2;
+	public boolean drawMesh = true;
+	public boolean drawLines = false;
+	public boolean drawPoints = false;
 
 	// Main sketch objects
+	public Scan[] scans;
 	public Scan scan;
 	public PImage backgroundImg;
+	public PShader scanShader;
+	public PShader pointShader;
 	public ControlPanel controlPanel;
-	PShader scanShader;
+	float startTime;
 
 	// Scene perspective variables
-	public float zoom = 1.5f;
+	public float zoom = 1.2f;
 	public float rotX = PI;
 	public float rotY = 0;
 
@@ -44,20 +55,52 @@ public class ScanViewerSketch extends PApplet {
 	 * Initializes the main sketch objects
 	 */
 	public void setup() {
-		// Load the scan
-		scan = new Scan(this);
-		scan.updateFromFile(scanDir + fileName);
-		scan.setCenter(new PVector(0, 0, -100));
-		scan.reduceResolution(2);
-		scan.crop();
-		scan.gaussianSmooth(5);
-		scan.calculateNormals();
-		scan.fillHoles(15);
-		scan.calculateShape(false, color(255f, 50f, 50f));
+		// Load all the scans
+		scans = new Scan[scanFiles.length];
 
-		// Calculate the sculpture limits to use them for the floor dimensions, adding some offset in the y direction
-		limits = scan.calculateLimits();
-		limits[0].y -= 200;
+		for (int i = 0; i < scanFiles.length; i++) {
+			Scan s = new Scan(this);
+			s.updateFromFile(scanDir + scanFiles[i]);
+			s.crop();
+			scans[i] = s;
+		}
+
+		// Use the correct scan
+		scan = scans[currentScanIndex].copy();
+
+		// Adapt the scan for the sketch
+		scan.reduceResolution(startResolution);
+		scan.fillHoles(startFillHoleSize);
+		scan.gaussianSmooth(startSmothness);
+
+		// Calculate the scan point normals
+		scan.calculateNormals();
+
+		// Calculate the scan meshes
+		scan.calculateMesh(true);
+		scan.calculatePointsMesh(true, 2);
+		scan.calculateLinesMesh(true, 1);
+
+		// Load the scan mesh shader and set its uniform values
+		scanShader = loadShader(shadersDir + meshShaderFiles[0], shadersDir + meshShaderFiles[1]);
+		scanShader.set("illuminateFrontFace", false);
+		scanShader.set("backColor", 1.0f, 1.0f, 1.0f, 1.0f);
+		scanShader.set("time", 0.0f);
+		scanShader.set("effect", 0);
+		scanShader.set("invertEffect", false);
+		scanShader.set("effectColor", 0.3f, 0.3f, 0.3f, 1.0f);
+		scanShader.set("fillWithColor", false);
+
+		// Load the scan point shader and set its uniform values
+		pointShader = loadShader(shadersDir + pointShaderFiles[0], shadersDir + pointShaderFiles[1]);
+		pointShader.set("time", 0.0f);
+		pointShader.set("effect", 0);
+		pointShader.set("invertEffect", false);
+		pointShader.set("effectColor", 0.3f, 0.3f, 0.3f, 1.0f);
+		pointShader.set("fillWithColor", false);
+
+		// The 3D perspective should affect the points and lines
+		hint(ENABLE_STROKE_PERSPECTIVE);
 
 		// Create the image that will be used as sketch background
 		backgroundImg = ImageHelper.createGradientImg(this, color(240), color(100));
@@ -66,14 +109,8 @@ public class ScanViewerSketch extends PApplet {
 		controlPanel = new ControlPanel(this);
 		controlPanel.setup();
 
-		scanShader = loadShader(shadersDir + "scanFrag.glsl", shadersDir + "scanVert.glsl");
-		scanShader.set("effect", 4);
-		scanShader.set("invertEffect", false);
-		scanShader.set("backColor", 1.0f, 1.0f, 1.0f, 1.0f);
-		scanShader.set("effectColor", 0.3f, 0.3f, 0.3f, 1.0f);
-		scanShader.set("fillWithColor", true);
-		scanShader.set("illuminateFrontFace", true);
-		//hint(DISABLE_OPTIMIZED_STROKE);
+		// Save the starting time
+		startTime = millis();
 	}
 
 	/**
@@ -81,32 +118,35 @@ public class ScanViewerSketch extends PApplet {
 	 */
 	public void draw() {
 		// Write the frame rate on the screen title
-		surface.setTitle("Kinect sculpture viewer // " + (int) frameRate + " fps");
+		surface.setTitle("Kinect scan viewer // " + (int) frameRate + " fps");
 
 		// Use the z-buffer to paint all the 3D objects according to their z position
 		hint(ENABLE_DEPTH_TEST);
 
 		// Draw the background
-		if (backgroundImg != null) {
-			background(backgroundImg);
-		} else {
-			background(220);
-		}
+		background(backgroundImg);
 
-		// Define the scene lights if we are not using real colors
+		// Define the scene lights
 		setSceneLights();
 
 		// Position the scene
-		translate(width / 2f, height / 2f, 0);
+		translate(width / 2, height / 2, 0);
 		rotateX(rotX);
 		rotateY(rotY);
 		scale(zoom);
 
-		scanShader.set("time", millis());
-		// shader(scanShader);
+		// Set the scan mesh shader and the point shader time uniform
+		scanShader.set("time", millis() - startTime);
+		pointShader.set("time", millis() - startTime);
 
-		// scan.drawAsTriangles();
-		scan.drawShape(scanShader);
+		// Draw the scan
+		if (drawMesh) {
+			scan.drawMesh(scanShader);
+		} else if (drawPoints) {
+			scan.drawPointsMesh(pointShader);
+		} else if (drawLines) {
+			scan.drawLinesMesh();
+		}
 
 		// Disable the z-buffer to paint the control panel on top of the screen
 		hint(DISABLE_DEPTH_TEST);
@@ -128,8 +168,8 @@ public class ScanViewerSketch extends PApplet {
 	 * Controls the scene angle view when the mouse is dragged
 	 */
 	public void mouseDragged() {
-		// Avoid the region covered by the control panel
-		if ((mouseX > 240) || (mouseY > 100)) {
+		// Check that we are not on top of the control panel
+		if (!controlPanel.isMouseOver()) {
 			noCursor();
 			rotX -= map(mouseY - pmouseY, -height, height, -TWO_PI, TWO_PI);
 			rotY -= map(mouseX - pmouseX, -width, width, -TWO_PI, TWO_PI);
@@ -151,12 +191,15 @@ public class ScanViewerSketch extends PApplet {
 	 * @param event the mouse event
 	 */
 	public void mouseWheel(MouseEvent event) {
-		float wheelCount = event.getCount();
+		// Check that we are not on top of the control panel
+		if (!controlPanel.isMouseOver()) {
+			float wheelCount = event.getCount();
 
-		if (wheelCount > 0) {
-			zoom *= 1.0 + 0.05 * wheelCount;
-		} else {
-			zoom /= 1.0 - 0.05 * wheelCount;
+			if (wheelCount > 0) {
+				zoom *= 1.0 + 0.05 * wheelCount;
+			} else {
+				zoom /= 1.0 - 0.05 * wheelCount;
+			}
 		}
 	}
 

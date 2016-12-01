@@ -1,5 +1,6 @@
 //
 // Based on the default Processing light vertex shader:
+// 
 // https://github.com/processing/processing/blob/master/core/src/processing/opengl/shaders/LightVert.glsl
 //
 
@@ -24,8 +25,8 @@ uniform vec4 backColor;
 
 // Vertex attributes
 attribute vec4 position;
-attribute vec4 color;
 attribute vec3 normal;
+attribute vec4 color;
 
 // Light attributes
 attribute vec4 ambient;
@@ -34,8 +35,8 @@ attribute vec4 emissive;
 attribute float shininess;
 
 // Varyings
-varying vec4 vertColor;
-varying vec4 backVertColor;
+varying vec4 vFrontColor;
+varying vec4 vBackColor;
 
 // Constants
 const float zero_float = 0.0;
@@ -43,7 +44,7 @@ const float one_float = 1.0;
 const vec3 zero_vec3 = vec3(0);
 
 //
-// Calculates the falloff factor
+// Calculates the light falloff factor
 //
 float falloffFactor(vec3 lightPos, vec3 vertPos, vec3 coeff) {
 	vec3 lpv = lightPos - vertPos;
@@ -54,7 +55,7 @@ float falloffFactor(vec3 lightPos, vec3 vertPos, vec3 coeff) {
 }
 
 //
-// Calculates the spot factor
+// Calculates the light spot factor
 //
 float spotFactor(vec3 lightPos, vec3 vertPos, vec3 lightNorm, float minCos, float spotExp) {
 	vec3 lpv = normalize(lightPos - vertPos);
@@ -64,14 +65,14 @@ float spotFactor(vec3 lightPos, vec3 vertPos, vec3 lightNorm, float minCos, floa
 }
 
 //
-// Calculates the Lamber factor
+// Calculates the Lambert illumination factor
 //
 float lambertFactor(vec3 lightDir, vec3 vecNormal) {
 	return max(zero_float, dot(lightDir, vecNormal));
 }
 
 //
-// Calculates the BlinnPhong factor
+// Calculates the Blinn Phong illumination factor
 //
 float blinnPhongFactor(vec3 lightDir, vec3 vertPos, vec3 vecNormal, float shine) {
 	vec3 np = normalize(vertPos);
@@ -83,10 +84,10 @@ float blinnPhongFactor(vec3 lightDir, vec3 vertPos, vec3 vecNormal, float shine)
 // Main program
 //
 void main() {
-	// Vertex in eye coordinates
-	vec3 ecVertex = vec3(modelviewMatrix * position);
+	// Position in eye coordinates
+	vec3 ecPosition = vec3(modelviewMatrix * position);
 	
-	// Normal vector in eye coordinates
+	// Normal in eye coordinates
 	vec3 ecNormal = normalize(normalMatrix * normal);
 	vec3 ecNormalInv = ecNormal * -one_float;
   
@@ -113,11 +114,11 @@ void main() {
 			falloff = one_float;
 			lightDir = -one_float * lightNormal[i];
 		} else {
-			falloff = falloffFactor(lightPos, ecVertex, lightFalloff[i]);  
-			lightDir = normalize(lightPos - ecVertex);
+			falloff = falloffFactor(lightPos, ecPosition, lightFalloff[i]);  
+			lightDir = normalize(lightPos - ecPosition);
 		}
 		
-		spotf = spotExp > zero_float ? spotFactor(lightPos, ecVertex, lightNormal[i], spotCos, spotExp) : one_float;
+		spotf = spotExp > zero_float ? spotFactor(lightPos, ecPosition, lightNormal[i], spotCos, spotExp) : one_float;
     
 		if (any(greaterThan(lightAmbient[i], zero_vec3))) {
 			totalAmbient += lightAmbient[i] * falloff;
@@ -129,26 +130,25 @@ void main() {
 		}
 		
 		if (any(greaterThan(lightSpecular[i], zero_vec3))) {
-			totalFrontSpecular += lightSpecular[i] * falloff * spotf * blinnPhongFactor(lightDir, ecVertex, ecNormal, shininess);
-			totalBackSpecular += lightSpecular[i] * falloff * spotf * blinnPhongFactor(lightDir, ecVertex, ecNormalInv, shininess);
+			totalFrontSpecular += lightSpecular[i] * falloff * spotf * blinnPhongFactor(lightDir, ecPosition, ecNormal, shininess);
+			totalBackSpecular += lightSpecular[i] * falloff * spotf * blinnPhongFactor(lightDir, ecPosition, ecNormalInv, shininess);
 		}     
 	}    
+
+	// Update the varyings	
+	vFrontColor = color;
 	
-	// Calculating final color as result of all lights (plus emissive term).
-	// Transparency is determined exclusively by the diffuse component.
 	if (illuminateFrontFace == 1) {
-		vertColor = vec4(totalAmbient, 0) * ambient + 
-                    vec4(totalFrontDiffuse, 1) * color + 
-                    vec4(totalFrontSpecular, 0) * specular + 
-                    vec4(emissive.rgb, 0);
-	} else {
-		vertColor = color;
+		vFrontColor = vec4(totalAmbient, 0) * ambient + 
+		              vec4(totalFrontDiffuse, 1) * color + 
+		              vec4(totalFrontSpecular, 0) * specular + 
+		              vec4(emissive.rgb, 0);
 	}
-  
-	backVertColor = vec4(totalAmbient, 0) * backColor + 
-                    vec4(totalBackDiffuse, 1) *  backColor + 
-                    vec4(totalBackSpecular, 0) * backColor + 
-                    vec4(emissive.rgb, 0);
+	
+	vBackColor = vec4(totalAmbient, 0) * backColor + 
+                 vec4(totalBackDiffuse, 1) *  backColor + 
+                 vec4(totalBackSpecular, 0) * backColor + 
+                 vec4(emissive.rgb, 0);
 	
 	// Vertex shader output
 	gl_Position = transformMatrix * position;
