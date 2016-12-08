@@ -1,8 +1,8 @@
 //
 // Based on the default Processing point shaders:
 // 
-// https://github.com/processing/processing/blob/master/core/src/processing/opengl/shaders/PointVert.glsl
-// https://github.com/processing/processing/blob/master/core/src/processing/opengl/shaders/PointFrag.glsl
+// https://github.com/processing/processing/blob/master/core/src/processing/opengl/shaders/LineVert.glsl
+// https://github.com/processing/processing/blob/master/core/src/processing/opengl/shaders/LineFrag.glsl
 //
 
 #ifdef GL_ES

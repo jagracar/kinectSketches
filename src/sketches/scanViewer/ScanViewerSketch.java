@@ -22,7 +22,9 @@ public class ScanViewerSketch extends PApplet {
 	public String shadersDir = "data/shaders/";
 	public String[] meshShaderFiles = new String[] { "scanFrag.glsl", "scanVert.glsl" };
 	public String[] pointShaderFiles = new String[] { "pointFrag.glsl", "pointVert.glsl" };
+	public String[] lineShaderFiles = new String[] { "lineFrag.glsl", "lineVert.glsl" };
 	public int currentScanIndex = 0;
+	public int currentEffect = 0;
 	public int startResolution = 2;
 	public int startFillHoleSize = 15;
 	public int startSmothness = 2;
@@ -36,8 +38,10 @@ public class ScanViewerSketch extends PApplet {
 	public PImage backgroundImg;
 	public PShader scanShader;
 	public PShader pointShader;
+	public PShader lineShader;
+	public BallsEffect ballsEffect;
 	public ControlPanel controlPanel;
-	float startTime;
+	public float startTime;
 
 	// Scene perspective variables
 	public float zoom = 1.2f;
@@ -99,11 +103,19 @@ public class ScanViewerSketch extends PApplet {
 		pointShader.set("effectColor", 0.3f, 0.3f, 0.3f, 1.0f);
 		pointShader.set("fillWithColor", false);
 
-		// The 3D perspective should affect the points and lines
-		hint(ENABLE_STROKE_PERSPECTIVE);
+		// Load the scan line shader and set its uniform values
+		lineShader = loadShader(shadersDir + lineShaderFiles[0], shadersDir + lineShaderFiles[1]);
+		lineShader.set("time", 0.0f);
+		lineShader.set("effect", 0);
+		lineShader.set("invertEffect", false);
+		lineShader.set("effectColor", 0.3f, 0.3f, 0.3f, 1.0f);
+		lineShader.set("fillWithColor", false);
 
 		// Create the image that will be used as sketch background
 		backgroundImg = ImageHelper.createGradientImg(this, color(240), color(100));
+
+		// Initialize the balls effect
+		ballsEffect = new BallsEffect(this, 500, 500, 80, 0.5f, 5);
 
 		// Initialize the control panel object
 		controlPanel = new ControlPanel(this);
@@ -111,6 +123,9 @@ public class ScanViewerSketch extends PApplet {
 
 		// Save the starting time
 		startTime = millis();
+
+		// The 3D perspective should affect the points and lines
+		hint(ENABLE_STROKE_PERSPECTIVE);
 	}
 
 	/**
@@ -135,9 +150,23 @@ public class ScanViewerSketch extends PApplet {
 		rotateY(rotY);
 		scale(zoom);
 
-		// Set the scan mesh shader and the point shader time uniform
+		// Set the scan mesh shader and the point and line shader time uniform
 		scanShader.set("time", millis() - startTime);
 		pointShader.set("time", millis() - startTime);
+		lineShader.set("time", millis() - startTime);
+
+		// Update the balls effect if necessary
+		if (currentEffect == 8) {
+			ballsEffect.update(false);
+			scanShader.set("mask", ballsEffect.getImage());
+			pointShader.set("mask", ballsEffect.getImage());
+			lineShader.set("mask", ballsEffect.getImage());
+		} else if (currentEffect == 9) {
+			ballsEffect.update(true);
+			scanShader.set("mask", ballsEffect.getImage());
+			pointShader.set("mask", ballsEffect.getImage());
+			lineShader.set("mask", ballsEffect.getImage());
+		}
 
 		// Draw the scan
 		if (drawMesh) {
@@ -145,7 +174,7 @@ public class ScanViewerSketch extends PApplet {
 		} else if (drawPoints) {
 			scan.drawPointsMesh(pointShader);
 		} else if (drawLines) {
-			scan.drawLinesMesh();
+			scan.drawLinesMesh(lineShader);
 		}
 
 		// Disable the z-buffer to paint the control panel on top of the screen

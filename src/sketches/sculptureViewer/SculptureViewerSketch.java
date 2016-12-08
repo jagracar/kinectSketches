@@ -79,11 +79,7 @@ public class SculptureViewerSketch extends PApplet {
 		hint(ENABLE_DEPTH_TEST);
 
 		// Draw the background
-		if (backgroundImg != null) {
-			background(backgroundImg);
-		} else {
-			background(220);
-		}
+		background(backgroundImg);
 
 		// Define the scene lights
 		setSceneLights();

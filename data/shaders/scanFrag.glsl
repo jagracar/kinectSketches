@@ -28,6 +28,7 @@ uniform int effect;
 uniform int invertEffect;
 uniform vec4 effectColor;
 uniform int fillWithColor;
+uniform sampler2D mask;
 
 // Varyings
 varying vec3 vWcPosition;
@@ -220,6 +221,15 @@ float edgeFactor(vec3 barycentricVector) {
 }
 
 //
+// The mask effect
+//
+bool maskEffect(vec3 positionVector, sampler2D texture) {
+	vec4 maskValue = texture2D(texture, vec2(0.5 + positionVector.x/500, 0.5 - positionVector.y/500));
+	return all(greaterThan(maskValue.rgb, vec3(0.5)));
+}
+
+
+//
 // Main program
 //
 void main() {
@@ -300,6 +310,8 @@ void main() {
 		masked = circleEffect(vWcPosition) != (invertEffect == 1);
 	} else if (effect == 5) {
 		masked = verticalCutEffect(vWcPosition) != (invertEffect == 1);
+	} else if (effect >= 8) {
+		masked = maskEffect(vWcPosition, mask) != (invertEffect == 1);
 	}
 	
 	// Calculate the effect colors

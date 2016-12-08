@@ -223,7 +223,9 @@ public class ControlPanel {
 		list.addItem("Vertical cut effect", 5);
 		list.addItem("Grid effect", 6);
 		list.addItem("Edge effect", 7);
-		list.setValue(0);
+		list.addItem("Traces", 8);
+		list.addItem("Balls", 9);
+		list.setValue(p.currentEffect);
 		list.setGroup(effectsGroup);
 
 		toogle = cp5.addToggle("invertEffect");
@@ -328,17 +330,23 @@ public class ControlPanel {
 		String controllerName = controller.getName();
 
 		if (controllerName.equals("effect")) {
-			int value = (int) controller.getValue();
-			p.scanShader.set("effect", value);
-			p.pointShader.set("effect", value);
+			p.currentEffect = (int) controller.getValue();
+			p.scanShader.set("effect", p.currentEffect);
+			p.pointShader.set("effect", p.currentEffect);
+			p.lineShader.set("effect", p.currentEffect);
+
+			// Reset the effect
+			p.ballsEffect.reset();
 		} else if (controllerName.equals("invertEffect")) {
 			int value = (int) controller.getValue();
 			p.scanShader.set("invertEffect", value);
 			p.pointShader.set("invertEffect", value);
+			p.lineShader.set("invertEffect", value);
 		} else if (controllerName.equals("fillWithColor")) {
 			int value = (int) controller.getValue();
 			p.scanShader.set("fillWithColor", value);
 			p.pointShader.set("fillWithColor", value);
+			p.lineShader.set("fillWithColor", value);
 		}
 	}
 
