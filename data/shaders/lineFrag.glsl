@@ -17,6 +17,8 @@ uniform int invertEffect;
 uniform vec4 effectColor;
 uniform int fillWithColor;
 uniform sampler2D mask;
+uniform int cursorArraySize;
+uniform vec3 cursorArray[150];
 
 // Varyings
 varying vec3 vWcPosition;
@@ -149,6 +151,19 @@ bool maskEffect(vec3 positionVector, sampler2D texture) {
 }
 
 //
+// The cursor effect
+//
+bool cursorEffect(vec3 positionVector) {
+	for(int i = 0; i < cursorArraySize; i++){
+		if(length(positionVector - cursorArray[i]) < 10.0){
+			return true;
+		}		
+	}
+	
+	return false;
+}
+
+//
 // Main program
 //
 void main() {	
@@ -163,8 +178,10 @@ void main() {
 		masked = circleEffect(vWcPosition) != (invertEffect == 1);
 	} else if (effect == 5) {
 		masked = verticalCutEffect(vWcPosition) != (invertEffect == 1);
-	} else if (effect >= 8) {
+	} else if (effect >= 8 && effect < 11) {
 		masked = maskEffect(vWcPosition, mask) != (invertEffect == 1);
+	} else if (effect == 11){
+		masked = cursorEffect(vWcPosition) != (invertEffect == 1);
 	}
 	
 	// Fragment shader output

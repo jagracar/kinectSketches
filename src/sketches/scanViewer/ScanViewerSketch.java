@@ -5,6 +5,7 @@ import jagracar.kinect.containers.Scan;
 import jagracar.kinect.util.ImageHelper;
 import processing.core.PApplet;
 import processing.core.PImage;
+import processing.core.PVector;
 import processing.event.MouseEvent;
 import processing.opengl.PShader;
 
@@ -28,20 +29,25 @@ public class ScanViewerSketch extends PApplet {
 	public int startResolution = 2;
 	public int startFillHoleSize = 15;
 	public int startSmothness = 2;
+	public float[] backColor = new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
+	public float[] effectColor = new float[] { 0.3f, 0.3f, 0.3f, 1.0f };
 	public boolean drawMesh = true;
 	public boolean drawLines = false;
 	public boolean drawPoints = false;
+	public int cursorArraySize = 300;
 
 	// Main sketch objects
 	public Scan[] scans;
 	public Scan scan;
-	public PImage backgroundImg;
+	public float startTime;
 	public PShader scanShader;
 	public PShader pointShader;
 	public PShader lineShader;
-	public BallsEffect ballsEffect;
+	public PImage backgroundImg;
+	public Effect effectMask;
+	public float[] cursorArray;
+	public int cursorCounter;
 	public ControlPanel controlPanel;
-	public float startTime;
 
 	// Scene perspective variables
 	public float zoom = 1.2f;
@@ -85,44 +91,44 @@ public class ScanViewerSketch extends PApplet {
 		scan.calculatePointsMesh(true, 2);
 		scan.calculateLinesMesh(true, 1);
 
-		// Load the scan mesh shader and set its uniform values
+		// Save the starting time
+		startTime = millis();
+
+		// Load the scan mesh shader and set its initial uniform values
 		scanShader = loadShader(shadersDir + meshShaderFiles[0], shadersDir + meshShaderFiles[1]);
 		scanShader.set("illuminateFrontFace", false);
-		scanShader.set("backColor", 1.0f, 1.0f, 1.0f, 1.0f);
-		scanShader.set("time", 0.0f);
-		scanShader.set("effect", 0);
+		scanShader.set("backColor", backColor[0], backColor[1], backColor[2], backColor[3]);
+		scanShader.set("time", startTime);
+		scanShader.set("effect", currentEffect);
 		scanShader.set("invertEffect", false);
-		scanShader.set("effectColor", 0.3f, 0.3f, 0.3f, 1.0f);
+		scanShader.set("effectColor", effectColor[0], effectColor[1], effectColor[2], effectColor[3]);
 		scanShader.set("fillWithColor", false);
+		scanShader.set("cursorArraySize", cursorArraySize / 3);
 
-		// Load the scan point shader and set its uniform values
+		// Load the scan point shader and set its initial uniform values
 		pointShader = loadShader(shadersDir + pointShaderFiles[0], shadersDir + pointShaderFiles[1]);
-		pointShader.set("time", 0.0f);
-		pointShader.set("effect", 0);
+		pointShader.set("time", startTime);
+		pointShader.set("effect", currentEffect);
 		pointShader.set("invertEffect", false);
-		pointShader.set("effectColor", 0.3f, 0.3f, 0.3f, 1.0f);
+		pointShader.set("effectColor", effectColor[0], effectColor[1], effectColor[2], effectColor[3]);
 		pointShader.set("fillWithColor", false);
+		pointShader.set("cursorArraySize", cursorArraySize / 3);
 
-		// Load the scan line shader and set its uniform values
+		// Load the scan line shader and set its initial uniform values
 		lineShader = loadShader(shadersDir + lineShaderFiles[0], shadersDir + lineShaderFiles[1]);
-		lineShader.set("time", 0.0f);
-		lineShader.set("effect", 0);
+		lineShader.set("time", startTime);
+		lineShader.set("effect", currentEffect);
 		lineShader.set("invertEffect", false);
-		lineShader.set("effectColor", 0.3f, 0.3f, 0.3f, 1.0f);
+		lineShader.set("effectColor", effectColor[0], effectColor[1], effectColor[2], effectColor[3]);
 		lineShader.set("fillWithColor", false);
+		lineShader.set("cursorArraySize", cursorArraySize / 3);
 
 		// Create the image that will be used as sketch background
 		backgroundImg = ImageHelper.createGradientImg(this, color(240), color(100));
 
-		// Initialize the balls effect
-		ballsEffect = new BallsEffect(this, 500, 500, 80, 0.5f, 5);
-
 		// Initialize the control panel object
 		controlPanel = new ControlPanel(this);
 		controlPanel.setup();
-
-		// Save the starting time
-		startTime = millis();
 
 		// The 3D perspective should affect the points and lines
 		hint(ENABLE_STROKE_PERSPECTIVE);
@@ -150,23 +156,8 @@ public class ScanViewerSketch extends PApplet {
 		rotateY(rotY);
 		scale(zoom);
 
-		// Set the scan mesh shader and the point and line shader time uniform
-		scanShader.set("time", millis() - startTime);
-		pointShader.set("time", millis() - startTime);
-		lineShader.set("time", millis() - startTime);
-
-		// Update the balls effect if necessary
-		if (currentEffect == 8) {
-			ballsEffect.update(false);
-			scanShader.set("mask", ballsEffect.getImage());
-			pointShader.set("mask", ballsEffect.getImage());
-			lineShader.set("mask", ballsEffect.getImage());
-		} else if (currentEffect == 9) {
-			ballsEffect.update(true);
-			scanShader.set("mask", ballsEffect.getImage());
-			pointShader.set("mask", ballsEffect.getImage());
-			lineShader.set("mask", ballsEffect.getImage());
-		}
+		// Update the shaders uniforms
+		updateUniforms();
 
 		// Draw the scan
 		if (drawMesh) {
@@ -182,6 +173,96 @@ public class ScanViewerSketch extends PApplet {
 
 		// Reset the camera view to position the control panel relative to the 2D plane
 		camera();
+	}
+
+	/**
+	 * Updates the scan mesh, point and line shader uniforms
+	 */
+	public void updateUniforms() {
+		// Update the shaders time uniform
+		float time = millis() - startTime;
+		scanShader.set("time", time);
+		pointShader.set("time", time);
+		lineShader.set("time", time);
+
+		// Update the effects if they are active
+		if (currentEffect >= 8 && currentEffect < 11) {
+			// Initialize the effect mask if necessary
+			if (effectMask == null) {
+				int canvasWidth = 500;
+				int canvasHeight = 500;
+
+				if (currentEffect == 8) {
+					int nBalls = 200;
+					float velocity = 0.5f;
+					float radius = 10;
+					effectMask = new BallsEffect(this, canvasWidth, canvasHeight, nBalls, velocity, radius);
+				} else if (currentEffect == 9) {
+					int nBalls = 80;
+					float velocity = 0.5f;
+					float radius = 5;
+					effectMask = new BallsEffect(this, canvasWidth, canvasHeight, nBalls, velocity, radius);
+				} else if (currentEffect == 10) {
+					int nParticles = Math.round(0.12f * canvasWidth * canvasHeight);
+					effectMask = new DlaEffect(this, canvasWidth, canvasHeight, nParticles);
+
+					// Add some seeds to start the aggregation
+					for (int seed = 0; seed < 20; seed++) {
+						int x = (int) (canvasWidth * Math.random());
+						int y = (int) (canvasHeight * Math.random());
+						((DlaEffect) effectMask).addSeed(x, y);
+					}
+				}
+			}
+
+			// Update the effect mask
+			if (currentEffect == 8) {
+				effectMask.update(false);
+			} else if (currentEffect == 9) {
+				effectMask.update(true);
+			} else if (currentEffect == 10) {
+				effectMask.update(false);
+			}
+
+			// Update the shaders mask uniform
+			PImage mask = effectMask.getImage();
+			scanShader.set("mask", mask);
+			pointShader.set("mask", mask);
+			lineShader.set("mask", mask);
+		} else if (currentEffect == 11) {
+			// Initialize the cursor array if necessary
+			if (cursorArray == null) {
+				cursorArray = new float[cursorArraySize];
+
+				// Set its values outside of the screen
+				for (int i = 0; i < cursorArraySize; i++) {
+					cursorArray[i] = -100000;
+				}
+
+				// Initialize the counter
+				cursorCounter = 0;
+			}
+
+			// Get the scan point that is closer to the mouse position
+			PVector point = scan.getPointUnderScreenPosition(mouseX, mouseY, 20);
+
+			// Set the point outside of the screen if the mouse is not over the scan
+			if (point == null) {
+				point = new PVector(-100000, -100000, -100000);
+			}
+
+			// Update the cursor array with the new point
+			int loc = cursorCounter % cursorArraySize;
+			cursorArray[loc] = point.x;
+			cursorArray[loc + 1] = point.y;
+			cursorArray[loc + 2] = point.z;
+			cursorCounter += 3;
+
+			// Update the shaders cursor array
+			scanShader.set("cursorArray", cursorArray, 3);
+			pointShader.set("cursorArray", cursorArray, 3);
+			lineShader.set("cursorArray", cursorArray, 3);
+		}
 	}
 
 	/**

@@ -32,7 +32,7 @@ public class ControlPanel {
 	private int marginX = 7;
 
 	/**
-	 * The controller vertical margin
+	 * The controllers vertical margin
 	 */
 	private int marginY = 7;
 
@@ -52,7 +52,7 @@ public class ControlPanel {
 	private int padding = 10;
 
 	/**
-	 * The buttons size in both dimensions
+	 * The button size in both dimensions
 	 */
 	private int buttonSize = 15;
 
@@ -225,6 +225,8 @@ public class ControlPanel {
 		list.addItem("Edge effect", 7);
 		list.addItem("Traces", 8);
 		list.addItem("Balls", 9);
+		list.addItem("DLA", 10);
+		list.addItem("Cursor", 11);
 		list.setValue(p.currentEffect);
 		list.setGroup(effectsGroup);
 
@@ -268,7 +270,7 @@ public class ControlPanel {
 	 * 
 	 * @param event the controller event
 	 */
-	protected void processScanEvent(ControlEvent event) {
+	private void processScanEvent(ControlEvent event) {
 		Controller<?> controller = event.getController();
 		String controllerName = controller.getName();
 
@@ -325,18 +327,20 @@ public class ControlPanel {
 	 * 
 	 * @param event the controller event
 	 */
-	protected void processEffectEvent(ControlEvent event) {
+	private void processEffectEvent(ControlEvent event) {
 		Controller<?> controller = event.getController();
 		String controllerName = controller.getName();
 
 		if (controllerName.equals("effect")) {
-			p.currentEffect = (int) controller.getValue();
-			p.scanShader.set("effect", p.currentEffect);
-			p.pointShader.set("effect", p.currentEffect);
-			p.lineShader.set("effect", p.currentEffect);
+			int effect = (int) controller.getValue();
+			p.currentEffect = effect;
+			p.scanShader.set("effect", effect);
+			p.pointShader.set("effect", effect);
+			p.lineShader.set("effect", effect);
 
-			// Reset the effect
-			p.ballsEffect.reset();
+			// Reset the effects
+			p.effectMask = null;
+			p.cursorArray = null;
 		} else if (controllerName.equals("invertEffect")) {
 			int value = (int) controller.getValue();
 			p.scanShader.set("invertEffect", value);

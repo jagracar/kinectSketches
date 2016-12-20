@@ -10,7 +10,7 @@ import processing.core.PVector;
  * 
  * @author Javier Graciá Carpio (jagracar)
  */
-public class BallsEffect {
+public class BallsEffect implements Effect {
 
 	/**
 	 * The canvas where the balls are moving
@@ -32,15 +32,15 @@ public class BallsEffect {
 	 * @param ballsVelocity the balls velocity
 	 * @param ballsRadius the balls radius
 	 */
-	public BallsEffect(PApplet p, int canvasWidth, int canvasHeight, int nBalls, float ballsVelocity, int ballsRadius) {
+	public BallsEffect(PApplet p, int canvasWidth, int canvasHeight, int nBalls, float ballsVelocity, float ballsRadius) {
 		this.canvas = p.createGraphics(canvasWidth, canvasHeight);
 		this.balls = new Ball[nBalls];
 
 		// Set the canvas defaults
 		this.canvas.beginDraw();
-		this.canvas.background(0);
 		this.canvas.noStroke();
 		this.canvas.fill(255);
+		this.canvas.background(0);
 		this.canvas.endDraw();
 
 		// Initialize the balls
@@ -71,15 +71,6 @@ public class BallsEffect {
 			canvas.ellipse(ball.position.x, ball.position.y, 2 * ball.radius, 2 * ball.radius);
 		}
 
-		canvas.endDraw();
-	}
-
-	/**
-	 * Resets the effect by cleaning the canvas
-	 */
-	public void reset() {
-		canvas.beginDraw();
-		canvas.background(0);
 		canvas.endDraw();
 	}
 
